@@ -16,19 +16,19 @@ export const config = {
     '--color-primary-900': '10 10 10',
     '--color-primary-950': '8 8 8',
 
-    /* Secondary  */
-    '--color-secondary-0': '253 253 253',
-    '--color-secondary-50': '251 251 251',
-    '--color-secondary-100': '246 246 246',
-    '--color-secondary-200': '242 242 242',
-    '--color-secondary-300': '237 237 237',
-    '--color-secondary-400': '230 230 231',
-    '--color-secondary-500': '217 217 219',
-    '--color-secondary-600': '198 199 199',
-    '--color-secondary-700': '189 189 189',
-    '--color-secondary-800': '177 177 177',
-    '--color-secondary-900': '165 164 164',
-    '--color-secondary-950': '157 157 157',
+    /* accent  */
+    '--color-accent-0': '253 253 253',
+    '--color-accent-50': '251 251 251',
+    '--color-accent-100': '246 246 246',
+    '--color-accent-200': '242 242 242',
+    '--color-accent-300': '237 237 237',
+    '--color-accent-400': '230 230 231',
+    '--color-accent-500': '217 217 219',
+    '--color-accent-600': '198 199 199',
+    '--color-accent-700': '189 189 189',
+    '--color-accent-800': '177 177 177',
+    '--color-accent-900': '165 164 164',
+    '--color-accent-950': '157 157 157',
 
     /* Tertiary */
     '--color-tertiary-0': '255 250 245',
@@ -155,7 +155,7 @@ export const config = {
     '--color-indicator-error': '185 28 28',
   }),
   dark: vars({
-    '--color-primary-0': '166 166 166',
+    '--color-primary-0': '38 38 38',
     '--color-primary-50': '175 175 175',
     '--color-primary-100': '186 186 186',
     '--color-primary-200': '197 197 197',
@@ -168,19 +168,19 @@ export const config = {
     '--color-primary-900': '254 249 249',
     '--color-primary-950': '253 252 252',
 
-    /* Secondary  */
-    '--color-secondary-0': '20 20 20',
-    '--color-secondary-50': '23 23 23',
-    '--color-secondary-100': '31 31 31',
-    '--color-secondary-200': '39 39 39',
-    '--color-secondary-300': '44 44 44',
-    '--color-secondary-400': '56 57 57',
-    '--color-secondary-500': '63 64 64',
-    '--color-secondary-600': '86 86 86',
-    '--color-secondary-700': '110 110 110',
-    '--color-secondary-800': '135 135 135',
-    '--color-secondary-900': '150 150 150',
-    '--color-secondary-950': '164 164 164',
+    /* accent  */
+    '--color-accent-0': '85 90 95',
+    '--color-accent-50': '23 23 23',
+    '--color-accent-100': '31 31 31',
+    '--color-accent-200': '39 39 39',
+    '--color-accent-300': '44 44 44',
+    '--color-accent-400': '56 57 57',
+    '--color-accent-500': '63 64 64',
+    '--color-accent-600': '86 86 86',
+    '--color-accent-700': '110 110 110',
+    '--color-accent-800': '135 135 135',
+    '--color-accent-900': '150 150 150',
+    '--color-accent-950': '164 164 164',
 
     /* Tertiary */
     '--color-tertiary-0': '84 49 18',
@@ -267,7 +267,7 @@ export const config = {
     '--color-typography-950': '254 254 255',
 
     /* Outline */
-    '--color-outline-0': '26 23 23',
+    '--color-outline-0': '85 90 95',
     '--color-outline-50': '39 38 36',
     '--color-outline-100': '65 65 65',
     '--color-outline-200': '83 82 82',
@@ -281,7 +281,7 @@ export const config = {
     '--color-outline-950': '253 254 254',
 
     /* Background */
-    '--color-background-0': '18 18 18',
+    '--color-background-0': '7 7 10',
     '--color-background-50': '39 38 37',
     '--color-background-100': '65 64 64',
     '--color-background-200': '83 82 82',
