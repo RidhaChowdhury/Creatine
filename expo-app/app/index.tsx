@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
+import { Text, View } from "react-native";
+import "../global.css"
 
 const Index = () => {
   return (
-    <View>
+    <View className="flex-1 items-center justify-center bg-white">
+      <Text className="text-blue-500">Test</Text>
     </View>
   )
 }
