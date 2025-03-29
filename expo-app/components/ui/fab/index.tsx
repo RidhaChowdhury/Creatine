@@ -38,7 +38,7 @@ const fabStyle = tva({
     size: {
       sm: 'px-2.5 py-2.5',
       md: 'px-3 py-3',
-      lg: 'px-4 py-4',
+      lg: 'px-4 py-5',
     },
     placement: {
       'top right': 'top-4 right-4',

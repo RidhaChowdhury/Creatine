@@ -3,9 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Text } from "@/components/ui/text";
 import { Fab } from "@/components/ui/fab";
 import { GlassWater } from "lucide-react-native";
+import CreatineScoopIcon from "@/components/CreatineScoop";
 import { supabase } from "@/lib/supabase";
 import { WaterLogActionsheet } from "@/components/WaterLogActionSheet";
 import { useAuth } from "@/context/authContext"; // Custom hook to get the user ID
+import { HStack } from "@/components/ui/hstack";
+import { Button } from "@/components/ui/button";
 
 
 const Today = () => {
@@ -80,7 +83,6 @@ const Today = () => {
       <View className="absolute top-20 left-5">
         <Text className="text-3xl font-bold text-white">{creatineAmount}g</Text>
       </View>
-
       {/* Water Section */}
       <View className="flex-1 justify-center items-center">
         <View className="flex-row items-end gap-2">
@@ -89,45 +91,32 @@ const Today = () => {
         </View>
       </View>
 
-      <Fab
-        size="md"
-        placement="bottom right"
-        className="bg-primary-0"
-        isHovered={false}
-        isDisabled={false}
-        isPressed={false}
-        onPress={() => {
-          setShowSheet(true);
-        }}
-      >
-        <GlassWater color={"white"} />
-      </Fab>
+      <HStack className="absolute bottom-4 right-4" space="xl">
+        {/* Creatine Button (left) */}
+        <Button
+          size="lg"
+          className="bg-primary-0 rounded-full w-20 h-20"
+          onPress={() => setShowSheet(true)}
+        >
+          <CreatineScoopIcon color={"white"} size={50} />
+        </Button>
+
+        {/* Water Button (right) */}
+        <Button
+          size="lg"
+          className="bg-primary-0 rounded-full w-20 h-20"
+          onPress={() => setShowSheet(true)}
+        >
+          <GlassWater color={"white"} size={32} />
+        </Button>
+      </HStack>
 
       {/* Water Logging Action Sheet */}
       <WaterLogActionsheet
         showActionsheet={showSheet}
         handleClose={() => setShowSheet(false)}
-        onLog={()=>{}}
+        onLog={() => {}}
       />
-      {/* <Actionsheet isOpen={showActionsheet} onClose={handleClose}>
-        <ActionsheetBackdrop />
-        <ActionsheetContent>
-          <ActionsheetDragIndicatorWrapper>
-            <ActionsheetDragIndicator />
-          </ActionsheetDragIndicatorWrapper>
-          <ActionsheetSectionHeaderText>Water</ActionsheetSectionHeaderText>
-          <VStack className="w-full px-4 mt-4">
-            <Button
-              size="lg"
-              variant="solid"
-              className="w-full bg-primary-0"
-              onPress={handleClose}
-            >
-              <Text className="font-medium">Log Water</Text>
-            </Button>
-          </VStack>
-        </ActionsheetContent>
-      </Actionsheet> */}
     </SafeAreaView>
   );
 };

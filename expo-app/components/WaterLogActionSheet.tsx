@@ -108,9 +108,9 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                     setDrinkType(value as DrinkType)
                   }
                 >
-                  <SelectTrigger variant="outline" size="md" className="justify-between" style={{ paddingRight: 5}}>
+                  <SelectTrigger variant="outline" size="md" className="justify-between">
                     <SelectInput placeholder="Select drink" />
-                    <SelectIcon as={ChevronDownIcon} />
+                    <SelectIcon as={ChevronDownIcon} className="mx-2"/>
                   </SelectTrigger>
                   <SelectPortal>
                     <SelectBackdrop />

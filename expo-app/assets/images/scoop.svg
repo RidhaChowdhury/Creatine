@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Trapezoidal scoop with reduced depth -->
+  <!-- <path d="M10 8 L22 8 L20 16 L12 16 Z" /> -->
+  <path d="M4 12 L16 12 L14 20 L6 20 Z" />
+  <!-- Extended handle -->
+  <line x1="14" y1="12" x2="28" y2="12" />
+</svg>
