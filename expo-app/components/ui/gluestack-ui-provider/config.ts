@@ -155,7 +155,7 @@ export const config = {
     '--color-indicator-error': '185 28 28',
   }),
   dark: vars({
-    '--color-primary-0': '166 166 166',
+    '--color-primary-0': '38 38 38',
     '--color-primary-50': '175 175 175',
     '--color-primary-100': '186 186 186',
     '--color-primary-200': '197 197 197',
@@ -169,7 +169,7 @@ export const config = {
     '--color-primary-950': '253 252 252',
 
     /* Secondary  */
-    '--color-secondary-0': '20 20 20',
+    '--color-secondary-0': '85 90 95',
     '--color-secondary-50': '23 23 23',
     '--color-secondary-100': '31 31 31',
     '--color-secondary-200': '39 39 39',
@@ -267,7 +267,7 @@ export const config = {
     '--color-typography-950': '254 254 255',
 
     /* Outline */
-    '--color-outline-0': '26 23 23',
+    '--color-outline-0': '85 90 95',
     '--color-outline-50': '39 38 36',
     '--color-outline-100': '65 65 65',
     '--color-outline-200': '83 82 82',
@@ -281,7 +281,7 @@ export const config = {
     '--color-outline-950': '253 254 254',
 
     /* Background */
-    '--color-background-0': '18 18 18',
+    '--color-background-0': '7 7 10',
     '--color-background-50': '39 38 37',
     '--color-background-100': '65 64 64',
     '--color-background-200': '83 82 82',

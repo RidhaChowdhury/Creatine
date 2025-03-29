@@ -8,7 +8,7 @@ import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <GluestackUIProvider mode="light">
+      <GluestackUIProvider mode="dark">
         <Stack />
       </GluestackUIProvider>
     </AuthProvider>
