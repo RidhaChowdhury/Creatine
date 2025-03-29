@@ -9,7 +9,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <GluestackUIProvider mode="dark">
-        <Stack />
+        <Stack screenOptions={{ headerShown: false }}/>
       </GluestackUIProvider>
     </AuthProvider>
     
