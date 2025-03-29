@@ -1,8 +1,12 @@
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from 'react-native'
+import React from 'react'
 
-export default function Index() {
+const Index = () => {
   return (
     <View>
     </View>
-  );
+  )
 }
+
+export default Index
+

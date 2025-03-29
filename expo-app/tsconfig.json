@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "jsx": "react-native",
+    // "jsx": "react-native",
     "strict": true,
     "paths": {
       "@/*": [

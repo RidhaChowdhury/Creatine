@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import {supabase} from "../lib/supabase";
 import { router } from "expo-router";
 import { User } from "@supabase/supabase-js"; // Import types
 
