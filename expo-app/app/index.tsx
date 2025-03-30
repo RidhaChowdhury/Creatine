@@ -1,9 +1,10 @@
 import { Text, View } from "react-native";
+import CreatineScoopIcon from "@/components/CreatineScoop";
 
 const Index = () => {
   return (
-    <View>
-      <Text>Oh, somethings wrong</Text>
+    <View className="h-full bg-background-0 flex items-center justify-center">
+      <CreatineScoopIcon color={"white"} size={100} ></CreatineScoopIcon>
     </View>
   )
 }
