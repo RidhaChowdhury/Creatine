@@ -22,8 +22,14 @@ interface Props {
   numDays: number; // Should be multiple of 7
   onDayPress?: (date: string) => void;
 }
-
-const colors :string[] = ["#777777", "#AAAAAA", "#CCCCCC", "#FFFFFF"]; 
+const colors :string[] = ["#335533", "#557755", "#779977", "#99BB99", "#BBDDBB", "#DDFFDD"];
+const getColor = (count: number) => {
+  // Map count to color index, ensuring it doesn't exceed the array length
+  if (count < 0)
+    return "#666666";
+  const index = Math.min(count, colors.length - 1);
+  return colors[index];
+}
 
 // Helper function to parse date string without timezone issues
 const parseDateString = (dateStr: string) => {
@@ -73,7 +79,7 @@ const HeatCalendar = ({ data, endDate, numDays, onDayPress }: Props) => {
                 style={[
                   styles.dayCell,
                   {
-                    backgroundColor: colors[count],
+                    backgroundColor: getColor(count),
                     opacity: isFuture ? 0.5 : 1,
                   },
                 ]}
