@@ -54,10 +54,12 @@ const Today = () => {
 
     if (userSettings) {
       const { creatine_goal, water_goal } = userSettings;
+      console.log("User Settings: ", userSettings);
       setDailyGoal({
-        creatine: creatine_goal || 5.0, // Default to 5g if not set
-        water: water_goal || 150, // Default to 150oz if not set
+        creatine: creatine_goal,
+        water: water_goal,
       });
+      console.log(dailyGoal);
     }
     if (creatineData) {
       const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
