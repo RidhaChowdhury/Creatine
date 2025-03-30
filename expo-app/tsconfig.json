@@ -20,6 +20,6 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
-  ],
+, "lib/notifications.js"  ],
   "extends": "expo/tsconfig.base"
 }
