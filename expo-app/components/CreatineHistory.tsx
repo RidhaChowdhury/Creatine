@@ -15,6 +15,7 @@ import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
+import { calculateSaturation, CreatineLogEntry } from "@/utils/creatineSaturation";
 
 type CommitData = {
   date: string;
@@ -41,40 +42,55 @@ export const CreatineHistory = () => {
     
       const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
         useEffect(() => {
-          const fetchCreatineData = async () => {
-            try {
-              // Get current user
-              const {
-                data: { user },
-                error: authError,
-              } = await supabase.auth.getUser();
-              if (authError || !user)
-                throw authError || new Error("No user logged in");
+            const fetchCreatineData = async () => {
+              try {
+                const {
+                  data: { user },
+                } = await supabase.auth.getUser();
+                const { data } = await supabase
+                  .from("creatine_logs")
+                  .select("taken_at, dose_grams")
+                  .eq("user_id", user?.id)
+                  .order("taken_at", { ascending: true });
 
-              // Call the Postgres function
-              const { data, error } = await supabase.rpc(
-                "get_creatine_heatmap_data",
-                {
-                  user_uuid: user.id,
-                  days_back: daysToShow,
+                // Aggregate daily doses
+                const dailyDoses = new Map<string, number>();
+                data?.forEach((log) => {
+                  const date = new Date(log.taken_at)
+                    .toISOString()
+                    .split("T")[0];
+                  const current = dailyDoses.get(date) || 0;
+                  dailyDoses.set(date, current + log.dose_grams);
+                });
+
+                // Generate complete timeline with doses
+                const daysToShow = 28;
+                const entries: CreatineLogEntry[] = [];
+                for (let i = 0; i < daysToShow; i++) {
+                  const date = new Date();
+                  date.setDate(date.getDate() - i);
+                  const dateStr = date.toISOString().split("T")[0];
+                  entries.unshift({
+                    date: dateStr,
+                    doseGrams: dailyDoses.get(dateStr) || 0,
+                  });
                 }
-              );
 
-              if (error) throw error;
+                const saturations = calculateSaturation(entries);
 
-              // Transform to CommitData format
-              const formattedData = data.map((item: any) => ({
-                date: item.date,
-                count: item.count,
-              }));
+                const heatmapData = entries.map((entry, i) => ({
+                  date: entry.date,
+                  count: Math.floor(saturations[i] * 6), // Scale 0-1 to 0-4,
+                  saturation: saturations[i]
+                }));
+                console.log(heatmapData);
 
-              setCommitData(formattedData);
-            } catch (error) {
-              console.error("Error fetching creatine data:", error);
-            } finally {
-              setLoading(false);
-            }
-          };
+                setCommitData(heatmapData);
+                console.log("Commit data set");
+              } catch (error) {
+                console.error("Error fetching creatine data:", error);
+              }
+            };
 
           const fetchCreatineForms = async () => {
             try {
@@ -191,6 +207,7 @@ export const CreatineHistory = () => {
           fetchCreatineConsistency();
           fetchStreak();
           fetchDaysLogged();
+          setLoading(false);
         }, [daysToShow, refreshTrigger.creatine]);
 
         function generateRandomColor(): string {

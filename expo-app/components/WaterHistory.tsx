@@ -71,8 +71,6 @@ export const WaterHistory = () => {
               setCommitData(formattedData);
             } catch (error) {
               console.error("Error fetching creatine data:", error);
-            } finally {
-              setLoading(false);
             }
           };
 
@@ -189,6 +187,7 @@ export const WaterHistory = () => {
           fetchWaterConsistency();
           fetchStreak();
           fetchDaysLogged();
+          setLoading(false);
         }, [daysToShow, refreshTrigger.water]);
 
         function generateRandomColor(): string {
