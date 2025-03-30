@@ -10,6 +10,7 @@ import { Input, InputField } from "@/components/ui/input"
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
 import { router } from 'expo-router'
+import { Box } from '@/components/ui/box'
 
 
 
@@ -77,13 +78,13 @@ const Settings = () => {
                 <CircleUser color={'white'} size={48} />
                 <Text className='text-[20px] font-semibold pl-[7]'>{settings?.name}</Text>
             </View>
-            <Button className='bg-[#A9A969] mt-[10]'>
-                <Text className='text-white text-[20px] font-semibold'>Get PRO</Text>
-                <Crown color={'white'} size={20}></Crown>
+            <Button className='bg-[#2B4593] mt-[10] h-[45] rounded-[15px]'>
+                <Text className='text-[#EEC700] text-[20px] font-semibold'>Get PRO</Text>
+                <Crown color={'#EEC700'} size={20}></Crown>
             </Button>
-            <View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px] p-[12]">
                 <View className='flex-row items-center justify-between'>
-                    <Text className="text-[20px] pt-[10] font-semibold pr-[5]">Profile Settings</Text>
+                    <Text className="text-[24px] pt-[5] font-semibold pr-[5]">Profile Settings</Text>
                     {(activeEditSection !== 'profile') ? (
                     <TouchableOpacity className='pt-[10]' onPress={() => toggleEdit('profile')}>
                         <Pencil color={'white'} size={18}></Pencil>
@@ -102,20 +103,20 @@ const Settings = () => {
 
                 <View>
                     <Text className='text-[14px] py-[4] text-typography-300'>Name</Text>
-                    <Input isDisabled={activeEditSection !== 'profile'} 
+                    <Input className='h-[45]' isDisabled={activeEditSection !== 'profile'} 
                     >
                         <InputField onChangeText={(e: string) => handleInputChange('name', e)} >{settings?.name}</InputField>
                     </Input>
-                    <Text className='text-[14px] py-[4] text-typography-300'>Email</Text>
-                    <Input isDisabled={true} >
+                    <Text className='text-[14px] py-[4] pt-[8] text-typography-300'>Email</Text>
+                    <Input className='h-[45] mb-[5]' isDisabled={true} >
                         <InputField >{user?.email}</InputField>
                     </Input>
                 </View>
-            </View>
+            </Box>
 
-            <View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px] p-[12] pb-[12]">
                 <View className='flex-row items-center justify-between'>
-                    <Text className="text-[20px] pt-[15] font-semibold">Goals</Text>
+                    <Text className="text-[24px] pt-[5] font-semibold pr-[5]">Goals</Text>
                     {(activeEditSection !== 'goals') ? (
                     <TouchableOpacity className='pt-[15]' onPress={() => toggleEdit('goals')}>
                         <Pencil color={'white'} size={18}></Pencil>
@@ -133,26 +134,26 @@ const Settings = () => {
                 </View>
                     <View>
                         <Text className='text-[14px] py-[4] text-typography-300'>Water Goal ({settings?.water_unit})</Text>
-                        <Input isDisabled={activeEditSection !== 'goals'}>
+                        <Input className='h-[45]' isDisabled={activeEditSection !== 'goals'}>
                             <InputField onChangeText={(e: string) => handleInputChange('water_goal', e)}>{settings?.water_goal}</InputField>
                         </Input>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Creatine Goal ({settings?.supplement_unit})</Text>
-                        <Input isDisabled={activeEditSection !== 'goals'} >
+                        <Text className='text-[14px] py-[4] pt-[8] text-typography-300'>Creatine Goal ({settings?.supplement_unit})</Text>
+                        <Input className='h-[45] mb-[5]' isDisabled={activeEditSection !== 'goals'} >
                             <InputField onChangeText={(e: string) => handleInputChange('creatine_goal', e)}>{settings?.creatine_goal}</InputField>
                         </Input>
                     </View>
-            </View>
+            </Box>
 
-            <View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px] p-[12] pb-[12]">
                 <View className='flex-row items-center justify-between'>
-                    <Text className="text-[20px] pt-[15] font-semibold">Metrics</Text>
+                    <Text className="text-[24px] pt-[5] font-semibold">Metrics</Text>
                     {(activeEditSection !== 'metrics') ? (
-                    <TouchableOpacity className='pt-[15]' onPress={() => toggleEdit('metrics')}>
+                    <TouchableOpacity className='pt-[10]' onPress={() => toggleEdit('metrics')}>
                         <Pencil color={'white'} size={18}></Pencil>
                     </TouchableOpacity>
                     ) : (
                         <View className='flex-row'>
-                            <TouchableOpacity className='pt-[15] pr-[25]' onPress={() => toggleEdit('metrics')}>
+                            <TouchableOpacity className='pt-[10] pr-[25]' onPress={() => toggleEdit('metrics')}>
                                 <X color={'white'} size={24}></X>
                             </TouchableOpacity>
                             <TouchableOpacity className='pt-[15]' onPress={() => handleSave()}>
@@ -162,17 +163,17 @@ const Settings = () => {
                     )}
                 </View>
                     <View>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Height</Text>
-                        <Input isDisabled={activeEditSection !== 'metrics'}>
+                        <Text className='text-[14px] py-[4] text-typography-300'>Height (in)</Text>
+                        <Input className='h-[45]' isDisabled={activeEditSection !== 'metrics'}>
                             <InputField onChangeText={(e: string) => handleInputChange('height', e)}>{settings?.height}</InputField>
                         </Input>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Weight</Text>
-                        <Input isDisabled={activeEditSection !== 'metrics'} >
+                        <Text className='text-[14px] pt-[8] py-[4] text-typography-300'>Weight (lbs)</Text>
+                        <Input className='h-[45]' isDisabled={activeEditSection !== 'metrics'} >
                             <InputField onChangeText={(e: string) => handleInputChange('weight', e)}>{settings?.weight}</InputField>
                         </Input>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Sex</Text>
-                        <Select isDisabled={activeEditSection !== 'metrics'} onValueChange={(value: string) => handleInputChange('sex', value)}>
-                            <SelectTrigger variant="outline" size="md">
+                        <Text className='text-[14px] pt-[8] py-[4] text-typography-300'>Sex</Text>
+                        <Select className='h-[45] mb-[5]' isDisabled={activeEditSection !== 'metrics'} onValueChange={(value: string) => handleInputChange('sex', value)}>
+                            <SelectTrigger className='h-[45] justify-between' variant="outline" size="md">
                                 <SelectInput placeholder={settings?.sex != null ? settings?.sex : 'Select'} />
                                 <SelectIcon className="mr-3" as={ChevronDownIcon} />
                             </SelectTrigger>
@@ -188,11 +189,11 @@ const Settings = () => {
                             </SelectPortal>
                         </Select>
                     </View>
-            </View>
+                </Box>
 
-            <View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px] p-[12] pb-[12]">
                 <View className='flex-row items-center justify-between'>
-                    <Text className="text-[20px] pt-[15] font-semibold">Preferences</Text>
+                    <Text className="text-[24px] pt-[5] font-semibold">Preferences</Text>
                     {(activeEditSection !== 'preferences') ? (
                     <TouchableOpacity className='pt-[15]' onPress={() => toggleEdit('preferences')}>
                         <Pencil color={'white'} size={18}></Pencil>
@@ -209,9 +210,9 @@ const Settings = () => {
                     )}
                 </View>
                     <View>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Water Unit</Text>
-                        <Select isDisabled={activeEditSection !== 'preferences'} onValueChange={(value: string) => handleInputChange('water_unit', value)}>
-                            <SelectTrigger variant="outline" size="md">
+                        <Text className='text-[14px] pt-[8] py-[4] text-typography-300'>Water Unit</Text>
+                        <Select className='h-[45]' isDisabled={activeEditSection !== 'preferences'} onValueChange={(value: string) => handleInputChange('water_unit', value)}>
+                            <SelectTrigger className='h-[45] justify-between' variant="outline" size="md">
                                 <SelectInput placeholder={settings?.water_unit} />
                                 <SelectIcon className="mr-3" as={ChevronDownIcon} />
                             </SelectTrigger>
@@ -226,9 +227,9 @@ const Settings = () => {
                                 </SelectContent>
                             </SelectPortal>
                         </Select>
-                        <Text className='text-[14px] py-[4] text-typography-300'>Supplement Unit</Text>
-                        <Select isDisabled={activeEditSection !== 'preferences'} onValueChange={(value: string) => handleInputChange('supplement_unit', value)}>
-                            <SelectTrigger variant="outline" size="md">
+                        <Text className='text-[14px] pt-[8] py-[4] text-typography-300'>Supplement Unit</Text>
+                        <Select className='h-[45] mb-[5]' isDisabled={activeEditSection !== 'preferences'} onValueChange={(value: string) => handleInputChange('supplement_unit', value)}>
+                            <SelectTrigger className='h-[45] justify-between' variant="outline" size="md">
                                 <SelectInput placeholder={settings?.supplement_unit} />
                                 <SelectIcon className="mr-3" as={ChevronDownIcon} />
                             </SelectTrigger>
@@ -244,17 +245,17 @@ const Settings = () => {
                             </SelectPortal>
                         </Select>
                     </View>
-            </View>
+            </Box>
 
             
 
-            <Button className='mt-[15] mb-[15]' onPress={() => {
+            <Button className='mt-[15] mb-[25] h-[45] rounded-[15px]' onPress={() => {
                 supabase.auth.signOut()
                 // console.log("SINGING OUT")
                 setUser(null)
                 router.replace("/(auth)/login")
             }}>
-                <ButtonText>Log Out</ButtonText>
+                <ButtonText className='text-[20px] font-semibold'>Log Out</ButtonText>
             </Button>
         </ScrollView>
 
