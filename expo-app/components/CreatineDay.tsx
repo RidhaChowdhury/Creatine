@@ -91,7 +91,10 @@ const CreatineDay = (props :any) => {
             <Text className="text-lg font-bold text-white">{}
             </Text>
         </View>
-        <View className=''>
+        <View className='mb-[10] px-[15]'>
+          {data.length === 0 && (
+            <Text className="text-white">No creatine logs for this day...</Text>
+          )}
     {data.map((log) => (
         <View key={log.id} className='mb-[10] px-[15] flex-row justify-between'>
             <Text className='text-white'>{`${log.dose_grams} grams`}</Text>
