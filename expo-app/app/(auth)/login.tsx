@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, TextInput, View, Button, Text, TouchableOpacity  } from "react-native";
+import { Alert, StyleSheet, View, TouchableOpacity, SafeAreaView  } from "react-native";
 import { supabase } from "@/lib/supabase";
-import { Stack } from "expo-router";
 import {router} from "expo-router";
-
+import { Input, InputField } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
+import { Button } from "@/components/ui/button";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,104 +21,40 @@ export default function Login() {
     setLoading(false);
   }
 
-//   async function signUpWithEmail() {
-//     setLoading(true);
-//     const { error } = await supabase.auth.signUp({
-//       email: email,
-//       password: password,
-//     });
-
-//     if (error) Alert.alert("Sign Up Error", error.message);
-//     setLoading(false);
-//   }
-
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ headerShown: true, title: "Supabase Expo Router App" }} />
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TextInput
-          style={styles.textInput}
-          onChangeText={(text) => setEmail(text)}
-          value={email}
-          placeholder="email@address.com"
-          autoCapitalize={"none"}
-        />
+    <SafeAreaView className='h-full bg-background-0 flex'>
+      <View className='flex-1 justify-center mt-[-20%] p-[30]'>
+        <Text className="text-[24px] font-bold pb-[5]">Login to your account</Text>
+        <View>
+          <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
+            <View className="flex-row">
+              <Text className="text-[14px] pb-[20]">Don't have an account?</Text>
+              <Text className="text-[14px] pb-[20] ml-[5] font-bold">Sign up</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        <View>
+          <Text className="text-[14px] font-semibold pb-[5]">Email</Text>
+          <Input className="h-[40]">
+              <InputField placeholder="email@website.com" onChangeText={(text:string) => setEmail(text)}></InputField>
+          </Input>
+        </View>
+        <View className='pb-4'>
+          <Text className="text-[14px] font-semibold pb-[5] pt-[20]">Password</Text>
+          <Input className="h-[40]">
+            <InputField secureTextEntry={true} placeholder="********" onChangeText={(text:string) => setPassword(text)}></InputField>
+          </Input>
+        </View>
+        <View className="flex flex-row justify-end mt-2">
+          <TouchableOpacity className="flex-end">
+              <Text>Forgot password?</Text>
+          </TouchableOpacity>
+        </View>
+        <Button  onPress={() => signInWithEmail()} className="bg-primary-0 h-[40] mt-[20]">
+          <Text className="text-white text-[16px] font-semibold">Login</Text>
+        </Button>
       </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          style={styles.textInput}
-          onChangeText={(text) => setPassword(text)}
-          value={password}
-          secureTextEntry={true}
-          placeholder="Password"
-          autoCapitalize={"none"}
-        />
-      </View>
-      <View>
-        <TouchableOpacity>
-            <Text>Forgot password?</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <TouchableOpacity
-          disabled={loading}
-          onPress={() => signInWithEmail()}
-          style={styles.buttonContainer}
-        >
-          <Text style={styles.buttonText}>SIGN IN</Text>
-        </TouchableOpacity>
-      </View>
-      <View>
-        <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
-            <Text>Don't have an account? Sign up</Text>
-        </TouchableOpacity>
-      </View>
-      {/* <View style={styles.verticallySpaced}>
-        <TouchableOpacity
-          disabled={loading}
-          onPress={() => signUpWithEmail()}
-          style={styles.buttonContainer}
-        >
-          <Text style={styles.buttonText}>SIGN UP</Text>
-        </TouchableOpacity>
-      </View> */}
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 40,
-    padding: 12,
-  },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: "stretch",
-  },
-  mt20: {
-    marginTop: 20,
-  },
-  buttonContainer: {
-    backgroundColor: "#000968",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    margin: 8,
-  },
-  buttonText: {
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "bold",
-    alignSelf: "center",
-    textTransform: "uppercase",
-  },
-  textInput: {
-    borderColor: "#000968",
-    borderRadius: 4,
-    borderStyle: "solid",
-    borderWidth: 1,
-    padding: 12,
-    margin: 8,
-  },
-});
