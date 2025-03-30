@@ -13,6 +13,7 @@ import HeatCalendar from "@/components/HeatCalendar";
 import { supabase } from "@/lib/supabase";
 import { Pie, PolarChart } from "victory-native";
 import { HStack } from "@/components/ui/hstack";
+import { Divider } from "@/components/ui/divider";
 
 type CommitData = {
   date: string;
@@ -33,6 +34,7 @@ const Metrics = () => {
   const [distributionData, setDistributionData] = useState<DistributionData[]>([]);
 
   const [consistencyData, setConsistencyData] = useState<any>(0);
+  const[streakData, setStreakData] = useState<number>(0);
 
   useEffect(() => {
     const fetchCreatineData = async () => {
@@ -129,9 +131,34 @@ const Metrics = () => {
       }
     }
 
+    const fetchStreak = async () => {
+      try {
+        // Get current user
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+        if (authError || !user)
+          throw authError || new Error("No user logged in");
+
+        // Call the Postgres function to get streak data
+        const { data, error } = await supabase.rpc("get_creatine_streak", {
+          user_uuid: user.id,
+        });
+
+        if (error) throw error;
+        // Process the streak data if needed
+        setStreakData(data ? data[0].streak_days : 0); // Assuming the response has a 'streak_count' field
+      }
+      catch (error) {
+        console.error("Error fetching creatine streak data:", error);
+      }
+    }
+
     fetchCreatineData();
     fetchCreatineForms();
     fetchCreatineConsistency();
+    fetchStreak();
   }, [daysToShow]);
 
   function generateRandomColor(): string {
@@ -211,29 +238,34 @@ const Metrics = () => {
           </Box>
 
           <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-            <HStack space="4xl">
-              <View className="flex-1 flex-col">
-                <Text className="text-sm">Consitency</Text>
+            <View className="flex-row items-center justify-between">
+              {/* First Consistency */}
+              <View className="flex-1 items-center">
+                <Text className="text-sm mb-1">Consistency</Text>
                 <Text className="text-xl font-bold">
                   {consistencyData ? `${consistencyData}%` : "0%"}
                 </Text>
               </View>
-              <View className="flex-1 flex-col">
-                <Text className="text-sm">Streak</Text>
-                <View className="flex-row ">
-                  <Flame color="white" />
-                  <View className="flex-row items-end">
-                    <Text className="text-xl font-bold">5</Text>
-                  </View>
+
+              <Divider orientation="vertical" />
+
+              {/* Streak - Centered with icon and number */}
+              <View className="flex-1 items-center">
+                <Text className="text-sm mb-1">Streak</Text>
+                <View className="flex-row items-center justify-center">
+                  <Flame color="white" size={18} className="mr-1" />
+                  <Text className="text-xl font-bold">{streakData ?? 0}</Text>
                 </View>
               </View>
-              <View className="flex-1 flex-col">
-                <Text className="text-sm">Consitency</Text>
-                <Text className="text-xl font-bold">
-                  {consistencyData ? `${consistencyData}%` : "0%"}
-                </Text>
+
+              <Divider orientation="vertical" />
+
+              {/* Second Metric - Replace with something different */}
+              <View className="flex-1 items-center">
+                <Text className="text-sm mb-1">Days Logged</Text>
+                <Text className="text-xl font-bold">{0}</Text>
               </View>
-            </HStack>
+            </View>
           </Box>
         </VStack>
       </ScrollView>
