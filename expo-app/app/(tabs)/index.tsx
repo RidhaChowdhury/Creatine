@@ -11,7 +11,7 @@ import { useAuth } from "@/context/authContext"; // Custom hook to get the user 
 import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
 import { WaveBackground } from "@/components/WaveBackground";
-
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 const Today = () => {
   const [creatineAmount, setCreatineAmount] = useState(0);
@@ -84,6 +84,15 @@ const Today = () => {
         offsetPercentage={2}
         // waveColor="rgba(100, 200, 255, 0.6)"
       />
+
+      {waterAmount >= dailyGoal.water && (
+        <ConfettiCannon
+          count={100}
+          origin={{x: -10, y: 0}}
+          autoStartDelay={600}
+          fadeOut={true}
+        />
+      )}
 
       {/* Creatine Section */}
       <View className="absolute top-20 left-5">
