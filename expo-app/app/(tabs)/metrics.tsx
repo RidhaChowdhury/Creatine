@@ -35,6 +35,7 @@ const Metrics = () => {
 
   const [consistencyData, setConsistencyData] = useState<any>(0);
   const[streakData, setStreakData] = useState<number>(0);
+  const [daysLoggedData, setDaysLoggedData] = useState<number>(0);
 
   useEffect(() => {
     const fetchCreatineData = async () => {
@@ -124,8 +125,6 @@ const Metrics = () => {
         if (error) throw error;
         // Process the consistency data if needed
         setConsistencyData(data ? data[0].consistency_percentage : 0); // Assuming the response has a 'consistency' field
-        console.log("Raw data", data);
-        console.log("Consistency Data: ", consistencyData); // Log the consistency data for debugging
       } catch (error) {
         console.error("Error fetching creatine consistency data:", error);
       }
@@ -155,10 +154,34 @@ const Metrics = () => {
       }
     }
 
+    const fetchDaysLogged = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const { data, error } = await supabase.rpc("get_creatine_days_logged", {
+          user_uuid: user?.id,
+        });
+
+        if (error) throw error;
+
+        // Properly handle the array response
+        const daysLogged = data?.[0]?.days_logged ?? 0;
+        setDaysLoggedData(daysLogged);
+
+        // This will log correctly
+        console.log("Processed days logged:", daysLogged);
+      } catch (error) {
+        console.error("Error fetching days logged:", error);
+        setDaysLoggedData(0);
+      }
+    };
+
     fetchCreatineData();
     fetchCreatineForms();
     fetchCreatineConsistency();
     fetchStreak();
+    fetchDaysLogged();
   }, [daysToShow]);
 
   function generateRandomColor(): string {
@@ -263,7 +286,25 @@ const Metrics = () => {
               {/* Second Metric - Replace with something different */}
               <View className="flex-1 items-center">
                 <Text className="text-sm mb-1">Days Logged</Text>
-                <Text className="text-xl font-bold">{0}</Text>
+                <Text className="text-xl font-bold">{daysLoggedData}</Text>
+              </View>
+            </View>
+          </Box>
+
+          <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
+            <View className="flex-row items-center justify-between">
+              {/* First Consistency */}
+              <View className="flex-1 items-center">
+                <Text className="text-md mb-1">Saturation</Text>
+                <Text className="text-2xl font-bold">54%</Text>
+              </View>
+
+              <Divider orientation="vertical" />
+
+              {/* Streak - Centered with icon and number */}
+              <View className="flex-1 items-center">
+                <Text className="text-md mb-1">Till Saturation</Text>
+                <Text className="text-2xl font-bold">18 days</Text>
               </View>
             </View>
           </Box>
