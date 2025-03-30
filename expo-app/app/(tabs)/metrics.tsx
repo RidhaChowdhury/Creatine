@@ -11,6 +11,7 @@ import { CalendarDays } from "lucide-react-native";
 import { VStack } from "@/components/ui/vstack";
 import HeatCalendar from "@/components/HeatCalendar";
 import { supabase } from "@/lib/supabase"; // Make sure you have this configured
+import CreatineDay from "@/components/CreatineDay";
 
 type CommitData = {
   date: string;
@@ -21,6 +22,7 @@ const Metrics = () => {
   const [commitData, setCommitData] = useState<CommitData[]>([]);
   const [loading, setLoading] = useState(true);
   const [daysToShow] = useState(28); // You can make this configurable
+  const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     const fetchCreatineData = async () => {
@@ -81,9 +83,10 @@ const Metrics = () => {
                 data={commitData}
                 endDate={new Date().toISOString().split("T")[0]}
                 numDays={daysToShow}
-                onDayPress={(date) => console.log("Pressed:", date)}
+                onDayPress={(date) => setSelectedDay(date)}
               />
             )}
+            <CreatineDay day={selectedDay} />
           </Box>
         </VStack>
       </ScrollView>
