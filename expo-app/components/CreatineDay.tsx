@@ -90,8 +90,8 @@ const CreatineDay = (props :any) => {
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">
-        <Text className="text-lg font-bold text-white">{props.day}</Text>
-        <Text className="text-lg font-bold text-white">{}</Text>
+        <Text className="text-[20px] font-bold text-white">Total: {data.reduce((total, log) => total + log.dose_grams, 0)} {data.reduce((total, log) => total + log.dose_grams, 0) === 1 ? "gram" : "grams"}</Text>
+        <Text className="text-[20px] font-bold text-white">{props.day}</Text>
       </View>
       <View className="mb-[10] px-[15]">
         {data.length === 0 && (
@@ -102,7 +102,7 @@ const CreatineDay = (props :any) => {
             key={log.id}
             className="mb-[10] px-[15] flex-row justify-between"
           >
-            <Text className="text-white">{`${log.dose_grams} grams`}</Text>
+            <Text className="text-white">{`${log.dose_grams} ${log.dose_grams === 1 ? "gram" : "grams"}`}</Text>
             <Text className="text-white">{log.form}</Text>
             <Text className="text-white">
               {new Date(log.taken_at).toLocaleTimeString([], {
