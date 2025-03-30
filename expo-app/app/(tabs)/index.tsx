@@ -14,6 +14,8 @@ import { WaveBackground } from "@/components/WaveBackground";
 import ConfettiCannon from 'react-native-confetti-cannon';
 import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import { useFocusEffect } from "expo-router";
+import * as Haptics from 'expo-haptics';
+
 
 
 const Today = () => {
@@ -91,7 +93,19 @@ const Today = () => {
     fetchData();
   }, [fetchData, refreshTrigger]);
 
-  
+
+  useEffect(() => {
+    if (waterAmount >= dailyGoal.water) {
+      const triggerHaptic = async () => {
+        for (let i = 0; i < 3; i++) {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between buzzes
+        }
+      };
+      triggerHaptic();
+    }
+  }, [waterAmount, dailyGoal.water]);
+
 
   return (
     <SafeAreaView className="bg-background-0 flex-1">
