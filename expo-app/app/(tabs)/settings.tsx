@@ -4,7 +4,7 @@ import { Button, ButtonText } from "@/components/ui/button"
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/authContext'
 import { Text } from '@/components/ui/text/'
-import {CircleUser, Pencil, Check, X} from 'lucide-react-native'
+import {CircleUser, Pencil, Check, X, Crown} from 'lucide-react-native'
 import { UserSettings } from '@/types'
 import { Input, InputField } from "@/components/ui/input"
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
@@ -76,6 +76,10 @@ const Settings = () => {
                 <CircleUser color={'white'} size={48} />
                 <Text className='text-[20px] font-semibold pl-[7]'>{settings?.name}</Text>
             </View>
+            <Button className='bg-[#A9A969] mt-[10]'>
+                <Text className='text-white text-[20px] font-semibold'>Get PRO</Text>
+                <Crown color={'white'} size={20}></Crown>
+            </Button>
             <View>
                 <View className='flex-row items-center justify-between'>
                     <Text className="text-[20px] pt-[10] font-semibold pr-[5]">Profile Settings</Text>
