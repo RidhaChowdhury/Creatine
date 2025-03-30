@@ -10,6 +10,7 @@ import { CreatineLogActionsheet } from "@/components/CreatineLogActionsheet";
 import { useAuth } from "@/context/authContext"; // Custom hook to get the user ID
 import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
+import { WaveBackground } from "@/components/WaveBackground";
 
 
 const Today = () => {
@@ -45,9 +46,19 @@ const Today = () => {
       .gte("logged_at", `${today}T00:00:00`)
       .lte("logged_at", `${today}T23:59:59`);
 
-    console.log("Fetched");
+    const { data: userSettings } = await supabase
+      .from("user_settings")
+      .select("creatine_goal, water_goal")
+      .eq("user_id", user.id)
+      .single();
 
-    // Update state
+    if (userSettings) {
+      const { creatine_goal, water_goal } = userSettings;
+      setDailyGoal({
+        creatine: creatine_goal || 5.0, // Default to 5g if not set
+        water: water_goal || 150, // Default to 150oz if not set
+      });
+    }
     if (creatineData) {
       const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
       setCreatineAmount(Number(total.toFixed(1)));
@@ -56,7 +67,8 @@ const Today = () => {
     if (waterData) {
       const total = waterData.reduce((sum, log) => sum + log.volume_floz, 0);
       setWaterAmount(total);
-      console.log("Total Water Amount: ", total); // Log the total for debugging
+      console.log(dailyGoal.water);
+      console.log("Total Water Amount: ", total/dailyGoal.water); // Log the total for debugging
     }
   }, []);
 
@@ -67,10 +79,18 @@ const Today = () => {
 
   return (
     <SafeAreaView className="bg-background-0 flex-1">
+      <WaveBackground
+        progressPercent={waterAmount / dailyGoal.water}
+        offsetPercentage={2}
+        // waveColor="rgba(100, 200, 255, 0.6)"
+      />
+
       {/* Creatine Section */}
       <View className="absolute top-20 left-5">
         <View className="flex-row items-end justify-end gap-1">
-          <Text className="text-3xl font-bold text-white">{creatineAmount}</Text>
+          <Text className="text-3xl font-bold text-white">
+            {creatineAmount}
+          </Text>
           <Text className="text-xl text-neutral-300 pb-1">g</Text>
         </View>
       </View>

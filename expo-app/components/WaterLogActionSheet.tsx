@@ -174,10 +174,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
             }}
               isDisabled={!amount}
             >
-              <ButtonText onPress={async() => {
-                await logWaterIntake(amount, drinkType);
-                
-              }} className="font-medium text-white">
+              <ButtonText className="font-medium text-white">
                 Log Drink
               </ButtonText>
             </Button>
