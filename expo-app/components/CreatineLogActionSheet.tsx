@@ -28,56 +28,51 @@ import { Text } from "@/components/ui/text";
 import { ChevronDownIcon } from "@/components/ui/icon";
 import { supabase } from "@/lib/supabase";
 
-const DRINK_OPTIONS = ["Water", "Juice", "Soda", "Coffee", "Tea"] as const;
-type DrinkType = (typeof DRINK_OPTIONS)[number];
+const CREATINE_FORMS = ["Monohydrate", "HCL", "Micronized"] as const;
+type CreatineForm = (typeof CREATINE_FORMS)[number];
 
-  const logWaterIntake = async (amount: string, drinkType: DrinkType) => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+const logCreatineIntake = async (grams: string, form: CreatineForm) => {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
 
-      // Convert amount to number and validate
-      const volume = parseInt(amount);
-      if (isNaN(volume)) {
-        throw new Error('Invalid amount');
-      }
+    const gramsValue = parseFloat(grams);
+    if (isNaN(gramsValue)) throw new Error("Invalid amount");
 
-      // Insert into water_logs table
-      const { data, error } = await supabase
-        .from('water_logs')
-        .insert([{
+    const { data, error } = await supabase
+      .from("creatine_logs")
+      .insert([
+        {
           user_id: user.id,
-          volume_floz: volume,
-          drink_type: drinkType.toLowerCase(),
-        }])
-        .select(); // Returns the inserted record
+          dose_grams: gramsValue,
+          form: form.toLowerCase(),
+        },
+      ])
+      .select();
 
-      if (error) throw error;
-      return data;
-      
-    } catch (error) {
-      console.error('Error logging water intake:', error);
-      throw error;
-    }
-  };
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error logging creatine:", error);
+    throw error;
+  }
+};
 
-interface WaterLogActionsheetProps {
+interface CreatineLogActionsheetProps {
   showActionsheet: boolean;
   handleClose: () => void;
-  onLog: (amount: string, drinkType: DrinkType) => void;
+  onLog: (grams: string, form: CreatineForm) => void;
 }
 
-export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
+export const CreatineLogActionsheet: React.FC<CreatineLogActionsheetProps> = ({
   showActionsheet,
   handleClose,
   onLog,
 }) => {
-  const [amount, setAmount] = useState<string>("");
-  const [drinkType, setDrinkType] = useState<DrinkType>("Water");
+  const [grams, setGrams] = useState<string>("");
+  const [form, setForm] = useState<CreatineForm>("Monohydrate");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -105,39 +100,43 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
 
-          <ActionsheetSectionHeaderText>Water</ActionsheetSectionHeaderText>
+          <ActionsheetSectionHeaderText>Creatine</ActionsheetSectionHeaderText>
 
           <VStack className="w-full px-4" space="md">
             <HStack className="w-full" space="md">
               {/* Amount Input */}
               <View className="flex-1">
                 <Text className="text-xs text-typography-300 mb-1">
-                  Amount (oz)
+                  Amount (grams)
                 </Text>
                 <Input>
                   <InputField
-                    value={amount}
-                    onChangeText={setAmount}
-                    placeholder="0"
-                    keyboardType="numeric"
+                    value={grams}
+                    onChangeText={setGrams}
+                    placeholder="0.0"
+                    keyboardType="decimal-pad"
                   />
                 </Input>
               </View>
 
-              {/* Drink Type Select */}
+              {/* Form Type Select */}
               <View className="flex-1">
                 <Text className="text-xs text-typography-500 mb-1">
-                  Drink Type
+                  Form Type
                 </Text>
                 <Select
-                  selectedValue={drinkType}
+                  selectedValue={form}
                   onValueChange={(value: string) =>
-                    setDrinkType(value as DrinkType)
+                    setForm(value as CreatineForm)
                   }
                 >
-                  <SelectTrigger variant="outline" size="md" className="justify-between">
-                    <SelectInput placeholder="Select drink" />
-                    <SelectIcon as={ChevronDownIcon} className="mx-2"/>
+                  <SelectTrigger
+                    variant="outline"
+                    size="md"
+                    className="justify-between"
+                  >
+                    <SelectInput placeholder="Select form" />
+                    <SelectIcon as={ChevronDownIcon} className="mx-2" />
                   </SelectTrigger>
                   <SelectPortal>
                     <SelectBackdrop />
@@ -145,7 +144,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                       <SelectDragIndicatorWrapper>
                         <SelectDragIndicator />
                       </SelectDragIndicatorWrapper>
-                      {DRINK_OPTIONS.map((option) => (
+                      {CREATINE_FORMS.map((option) => (
                         <SelectItem
                           key={option}
                           label={option}
@@ -163,22 +162,19 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
             <Button
               size="lg"
               variant="solid"
-              className={`w-full bg-primary-0 ${!amount ? "opacity-70" : ""}`}
-              onPress={async() => {
-                if (amount) {
-                    await logWaterIntake(amount, drinkType);
-                    onLog(amount, drinkType);
+              className={`w-full bg-primary-0 ${!grams ? "opacity-70" : ""}`}
+              onPress={async () => {
+                if (grams) {
+                    await logCreatineIntake(grams, form);
+                    onLog(grams, form); // Call the onLog callback with the grams and form
                     Keyboard.dismiss();
-                    handleClose();
+                    handleClose(); // Close the action sheet after logging
                 }
-            }}
-              isDisabled={!amount}
+              }}
+              isDisabled={!grams}
             >
-              <ButtonText onPress={async() => {
-                await logWaterIntake(amount, drinkType);
-                
-              }} className="font-medium text-white">
-                Log Drink
+              <ButtonText className="font-medium text-white">
+                Log Creatine
               </ButtonText>
             </Button>
           </VStack>
