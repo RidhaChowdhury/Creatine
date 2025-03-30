@@ -4,7 +4,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Text } from "@/components/ui/text";
 import { Box } from "@/components/ui/box";
 import { CalendarDays, ChartPie, Flame } from "lucide-react-native";
@@ -12,9 +12,10 @@ import { VStack } from "@/components/ui/vstack";
 import HeatCalendar from "@/components/HeatCalendar";
 import { supabase } from "@/lib/supabase";
 import { Pie, PolarChart } from "victory-native";
-import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
+import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
+
 
 type CommitData = {
   date: string;
@@ -38,6 +39,9 @@ const Metrics = () => {
   const[streakData, setStreakData] = useState<number>(0);
   const [daysLoggedData, setDaysLoggedData] = useState<number>(0);
   const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split("T")[0]);
+
+  const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
+  
 
   useEffect(() => {
     const fetchCreatineData = async () => {
@@ -184,7 +188,7 @@ const Metrics = () => {
     fetchCreatineConsistency();
     fetchStreak();
     fetchDaysLogged();
-  }, [daysToShow]);
+  }, [daysToShow, refreshTrigger.creatine]);
 
   function generateRandomColor(): string {
     // Generating a random number between 0 and 0xFFFFFF
@@ -195,124 +199,125 @@ const Metrics = () => {
 
   return (
     <SafeAreaView className="bg-background-0 h-full">
-      <ScrollView showsVerticalScrollIndicator={false} className="px-[15]">
-        <VStack>
-          <View className="flex-row items-center pt-[10]">
-            <CalendarDays color={"white"} size={32} />
-            <Text className="text-[20px] font-semibold pl-[7]">History</Text>
-          </View>
-          <Box className="mt-4 bg-primary-0 rounded-[15px]">
-            {loading ? (
-              <View className="py-8">
-                <ActivityIndicator size="large" color="#ffffff" />
-              </View>
-            ) : (
+      {loading ? (
+        <View className="py-8">
+          <ActivityIndicator size="large" color="#ffffff" />
+        </View>
+      ):
+      (
+        <ScrollView showsVerticalScrollIndicator={false} className="px-[15]">
+          <VStack>
+            <View className="flex-row items-center pt-[10]">
+              <CalendarDays color={"white"} size={32} />
+              <Text className="text-[20px] font-semibold pl-[7]">History</Text>
+            </View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px]">
               <HeatCalendar
                 data={commitData}
                 endDate={new Date().toISOString().split("T")[0]}
                 numDays={daysToShow}
                 onDayPress={(date) => setSelectedDay(date)}
               />
-            )}
-            <CreatineDay day={selectedDay} />
-          </Box>
-          <View className="flex-row items-center pt-[20]">
-            <ChartPie color={"white"} size={32} />
-            <Text className="text-[20px] font-semibold pl-[7]">Metrics</Text>
-          </View>
-          <Box className="mt-4 bg-primary-0 rounded-[15px] p-4">
-            {distributionData.length > 0 ? (
-              <View
-                className="flex-row items-center justify-start"
-                style={{ height: 150 }}
-              >
-                {/* Chart container with explicit dimensions */}
-                <View className="w-3/5">
-                  {/* Maintain square aspect ratio */}
-                  <PolarChart
-                    data={distributionData}
-                    labelKey="form"
-                    valueKey="count"
-                    colorKey="color"
-                  >
-                    <Pie.Chart innerRadius={"50%"} size={125} />
-                  </PolarChart>
-                </View>
+              <CreatineDay day={selectedDay} />
+            </Box>
+            <View className="flex-row items-center pt-[20]">
+              <ChartPie color={"white"} size={32} />
+              <Text className="text-[20px] font-semibold pl-[7]">Metrics</Text>
+            </View>
+            <Box className="mt-4 bg-primary-0 rounded-[15px] p-4">
+              {distributionData.length > 0 ? (
+                <View
+                  className="flex-row items-center justify-start"
+                  style={{ height: 150 }}
+                >
+                  {/* Chart container with explicit dimensions */}
+                  <View className="w-3/5">
+                    {/* Maintain square aspect ratio */}
+                    <PolarChart
+                      data={distributionData}
+                      labelKey="form"
+                      valueKey="count"
+                      colorKey="color"
+                    >
+                      <Pie.Chart innerRadius={"50%"} size={125} />
+                    </PolarChart>
+                  </View>
 
-                {/* Legend - takes remaining space */}
-                <View className="w-2/5 justify-center">
-                  {distributionData.map((item, index) => (
-                    <View key={index} className="flex-row items-center mb-2">
-                      <View
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <Text className="text-foreground text-sm">
-                        <Text className="font-medium">
-                          {item.form} ({item.count})
+                  {/* Legend - takes remaining space */}
+                  <View className="w-2/5 justify-center">
+                    {distributionData.map((item, index) => (
+                      <View key={index} className="flex-row items-center mb-2">
+                        <View
+                          className="w-3 h-3 rounded-full mr-2"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <Text className="text-foreground text-sm">
+                          <Text className="font-medium">
+                            {item.form} ({item.count})
+                          </Text>
                         </Text>
-                      </Text>
-                    </View>
-                  ))}
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ) : (
-              <Text className="text-center py-8 text-foreground">
-                No creatine form data available
-              </Text>
-            )}
-          </Box>
-
-          <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-            <View className="flex-row items-center justify-between">
-              {/* First Consistency */}
-              <View className="flex-1 items-center">
-                <Text className="text-sm mb-1">Consistency</Text>
-                <Text className="text-xl font-bold">
-                  {consistencyData ? `${consistencyData}%` : "0%"}
+              ) : (
+                <Text className="text-center py-8 text-foreground">
+                  No creatine form data available
                 </Text>
-              </View>
+              )}
+            </Box>
 
-              <Divider orientation="vertical" />
+            <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
+              <View className="flex-row items-center justify-between">
+                {/* First Consistency */}
+                <View className="flex-1 items-center">
+                  <Text className="text-sm mb-1">Consistency</Text>
+                  <Text className="text-xl font-bold">
+                    {consistencyData ? `${consistencyData}%` : "0%"}
+                  </Text>
+                </View>
 
-              {/* Streak - Centered with icon and number */}
-              <View className="flex-1 items-center">
-                <Text className="text-sm mb-1">Streak</Text>
-                <View className="flex-row items-center justify-center">
-                  <Flame color="white" size={18} className="mr-1" />
-                  <Text className="text-xl font-bold">{streakData ?? 0}</Text>
+                <Divider orientation="vertical" />
+
+                {/* Streak - Centered with icon and number */}
+                <View className="flex-1 items-center">
+                  <Text className="text-sm mb-1">Streak</Text>
+                  <View className="flex-row items-center justify-center">
+                    <Flame color="white" size={18} className="mr-1" />
+                    <Text className="text-xl font-bold">{streakData ?? 0}</Text>
+                  </View>
+                </View>
+
+                <Divider orientation="vertical" />
+
+                {/* Second Metric - Replace with something different */}
+                <View className="flex-1 items-center">
+                  <Text className="text-sm mb-1">Days Logged</Text>
+                  <Text className="text-xl font-bold">{daysLoggedData}</Text>
                 </View>
               </View>
+            </Box>
 
-              <Divider orientation="vertical" />
+            <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
+              <View className="flex-row items-center justify-between">
+                {/* First Consistency */}
+                <View className="flex-1 items-center">
+                  <Text className="text-md mb-1">Saturation</Text>
+                  <Text className="text-2xl font-bold">54%</Text>
+                </View>
 
-              {/* Second Metric - Replace with something different */}
-              <View className="flex-1 items-center">
-                <Text className="text-sm mb-1">Days Logged</Text>
-                <Text className="text-xl font-bold">{daysLoggedData}</Text>
+                <Divider orientation="vertical" />
+
+                {/* Streak - Centered with icon and number */}
+                <View className="flex-1 items-center">
+                  <Text className="text-md mb-1">Till Saturation</Text>
+                  <Text className="text-2xl font-bold">18 days</Text>
+                </View>
               </View>
-            </View>
-          </Box>
-
-          <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-            <View className="flex-row items-center justify-between">
-              {/* First Consistency */}
-              <View className="flex-1 items-center">
-                <Text className="text-md mb-1">Saturation</Text>
-                <Text className="text-2xl font-bold">54%</Text>
-              </View>
-
-              <Divider orientation="vertical" />
-
-              {/* Streak - Centered with icon and number */}
-              <View className="flex-1 items-center">
-                <Text className="text-md mb-1">Till Saturation</Text>
-                <Text className="text-2xl font-bold">18 days</Text>
-              </View>
-            </View>
-          </Box>
-        </VStack>
-      </ScrollView>
+            </Box>
+          </VStack>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 };

@@ -1,5 +1,5 @@
 import { View, SafeAreaView, TouchableOpacity } from "react-native";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { Text } from "@/components/ui/text";
 import { Fab } from "@/components/ui/fab";
 import { GlassWater } from "lucide-react-native";
@@ -12,6 +12,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
 import { WaveBackground } from "@/components/WaveBackground";
 import ConfettiCannon from 'react-native-confetti-cannon';
+import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 
 const Today = () => {
   const [creatineAmount, setCreatineAmount] = useState(0);
@@ -23,7 +24,8 @@ const Today = () => {
   const [showWaterSheet, setShowWaterSheet] = useState(false);
   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
 
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
   const { user } = useAuth();
 
   const fetchData = useCallback(async () => {
@@ -138,7 +140,7 @@ const Today = () => {
         showActionsheet={showWaterSheet}
         handleClose={() => setShowWaterSheet(false)}
         onLog={() => {
-          setRefreshTrigger((prev) => prev + 1);
+          refresh('water');
         }}
       />
 
@@ -146,7 +148,7 @@ const Today = () => {
         showActionsheet={showCreatineSheet}
         handleClose={() => setShowCreatineSheet(false)}
         onLog={() => {
-          setRefreshTrigger((prev) => prev + 1);
+          refresh('creatine');
         }}
       />
     </SafeAreaView>

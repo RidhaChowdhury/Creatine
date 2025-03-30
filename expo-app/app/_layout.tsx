@@ -4,13 +4,16 @@ import { Stack } from "expo-router";
 
 import "@/global.css";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
+import { RefreshProvider } from "@/context/refreshContext";
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <GluestackUIProvider mode="dark">
-        <Stack screenOptions={{ headerShown: false }}/>
-      </GluestackUIProvider>
+      <RefreshProvider>
+        <GluestackUIProvider mode="dark">
+          <Stack screenOptions={{ headerShown: false }}/>
+        </GluestackUIProvider>
+      </RefreshProvider>
     </AuthProvider>
     
   );

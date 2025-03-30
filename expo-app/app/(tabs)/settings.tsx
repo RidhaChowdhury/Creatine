@@ -1,5 +1,5 @@
 import { View, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native'
-import React from 'react'
+import React, { useContext } from 'react'
 import { Button, ButtonText } from "@/components/ui/button"
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/authContext'
@@ -10,15 +10,15 @@ import { Input, InputField } from "@/components/ui/input"
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
 import { router } from 'expo-router'
-
-
+import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 
 const Settings = () => {
     const { user, setUser } = useAuth()
     const [settings, setSettings] = React.useState<UserSettings | null>(null);
     const [formState, setFormState] = React.useState({})
     const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
-
+    const { refresh, refreshTrigger } = useContext<RefreshContextType>(RefreshContext);
+    
     const toggleEdit = (section: string) => {
         setActiveEditSection(prev => (prev === section ? null : section));
     };
@@ -48,6 +48,8 @@ const Settings = () => {
 
         setSettings({ ...settings, ...formState })
         toggleEdit(activeEditSection!)
+        refresh('creatine');
+        refresh('water');
     };
 
     React.useEffect(() => {
@@ -134,7 +136,7 @@ const Settings = () => {
                     <View>
                         <Text className='text-[14px] py-[4] text-typography-300'>Water Goal ({settings?.water_unit})</Text>
                         <Input isDisabled={activeEditSection !== 'goals'}>
-                            <InputField onChangeText={(e: string) => handleInputChange('water_goal', e)}>{settings?.water_goal}</InputField>
+                            <InputField onChangeText={(e: string) => {handleInputChange('water_goal', e);}}>{settings?.water_goal}</InputField>
                         </Input>
                         <Text className='text-[14px] py-[4] text-typography-300'>Creatine Goal ({settings?.supplement_unit})</Text>
                         <Input isDisabled={activeEditSection !== 'goals'} >
