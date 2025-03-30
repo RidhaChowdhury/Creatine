@@ -33,7 +33,7 @@ export const WaveBackground = ({
   // Calculate position with configurable offset
   const basePosition = useDerivedValue(() => {
     if(progressPercent == 0)
-        return 0;
+        return height;
     const progress = Math.max(0, Math.min(1, animatedProgress.value));
     const offset = progressPercent < 0.1 ? 0.1 : offsetPercentage / 100; // Convert percentage to decimal
     return height * (1 - offset - progress);
