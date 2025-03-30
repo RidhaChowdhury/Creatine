@@ -9,11 +9,12 @@ import { UserSettings } from '@/types'
 import { Input, InputField } from "@/components/ui/input"
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
+import { router } from 'expo-router'
 
 
 
 const Settings = () => {
-    const { user } = useAuth()
+    const { user, setUser } = useAuth()
     const [settings, setSettings] = React.useState<UserSettings | null>(null);
     const [formState, setFormState] = React.useState({})
     const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
@@ -247,8 +248,12 @@ const Settings = () => {
 
             
 
-            <Button className='mt-[15] mb-[15]' onPress={() => {supabase.auth.signOut()
-                console.log("SINGING OUT")}}>
+            <Button className='mt-[15] mb-[15]' onPress={() => {
+                supabase.auth.signOut()
+                // console.log("SINGING OUT")
+                setUser(null)
+                router.replace("/(auth)/login")
+            }}>
                 <ButtonText>Log Out</ButtonText>
             </Button>
         </ScrollView>
