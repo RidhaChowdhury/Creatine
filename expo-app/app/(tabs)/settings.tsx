@@ -302,7 +302,7 @@ const Settings = () => {
               <Text className="text-[24px] pt-[5] font-semibold">
                 Preferences
               </Text>
-              {activeEditSection !== "preferences" ? (
+              {/* {activeEditSection !== "preferences" ? (
                 <TouchableOpacity
                   className="pt-[15]"
                   onPress={() => toggleEdit("preferences")}
@@ -324,7 +324,7 @@ const Settings = () => {
                     <Check color={"white"} size={24}></Check>
                   </TouchableOpacity>
                 </View>
-              )}
+              )} */}
             </View>
             <View>
               <Text className="text-[14px] pt-[8] py-[4] text-typography-300">
