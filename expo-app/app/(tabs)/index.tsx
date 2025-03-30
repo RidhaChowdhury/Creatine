@@ -6,7 +6,7 @@ import { GlassWater } from "lucide-react-native";
 import CreatineScoopIcon from "@/components/CreatineScoop";
 import { supabase } from "@/lib/supabase";
 import { WaterLogActionsheet } from "@/components/WaterLogActionsheet";
-import { CreatineLogActionsheet } from "@/components/CreatineLogActionSheet";
+import { CreatineLogActionsheet } from "@/components/CreatineLogActionsheet";
 import { useAuth } from "@/context/authContext"; // Custom hook to get the user ID
 import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
