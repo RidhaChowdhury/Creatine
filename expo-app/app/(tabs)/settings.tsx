@@ -247,7 +247,18 @@ const Settings = () => {
 
             
 
-            <Button className='mt-[15] mb-[15]' onPress={() => supabase.auth.signOut()}>
+            <Button className='mt-[15] mb-[15]' onPress={() => {
+                console.log('Logging out...');
+                supabase.auth.signOut()
+                .then(({ error }) => {
+                    if (error) {
+                        console.error('Error logging out:', error)
+                        return
+                    }
+                    // Optionally, you can navigate to a different screen or show a message
+                });
+                console.log('Logged out successfully');
+                }}>
                 <ButtonText>Log Out</ButtonText>
             </Button>
         </ScrollView>
