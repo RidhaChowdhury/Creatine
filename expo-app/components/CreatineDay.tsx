@@ -90,19 +90,31 @@ const CreatineDay = (props :any) => {
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">
-        <Text className="text-[20px] font-bold text-white">Total: {data.reduce((total, log) => total + log.dose_grams, 0)} {data.reduce((total, log) => total + log.dose_grams, 0) === 1 ? "gram" : "grams"}</Text>
+        <Text className="text-[20px] font-bold text-white">
+          {data.reduce((total, log) => total + log.dose_grams, 0)}{" "}
+          {data.reduce((total, log) => total + log.dose_grams, 0) === 1
+            ? "gram"
+            : "grams"}
+        </Text>
+        <Text className="text-[20px] font-bold text-white">
+          {Math.floor(props.dayData.saturation * 100)}%
+        </Text>
         <Text className="text-[20px] font-bold text-white">{props.day}</Text>
       </View>
       <View className="mb-[10] px-[15]">
         {data.length === 0 && (
-          <Text className="text-white">No creatine logs for this day...</Text>
+          <Text className="text-white ml-4 mb-[10]">
+            No creatine logs for this day...
+          </Text>
         )}
         {data.map((log) => (
           <View
             key={log.id}
             className="mb-[10] px-[15] flex-row justify-between"
           >
-            <Text className="text-white">{`${log.dose_grams} ${log.dose_grams === 1 ? "gram" : "grams"}`}</Text>
+            <Text className="text-white">{`${log.dose_grams} ${
+              log.dose_grams === 1 ? "gram" : "grams"
+            }`}</Text>
             <Text className="text-white">{log.form}</Text>
             <Text className="text-white">
               {new Date(log.taken_at).toLocaleTimeString([], {
@@ -125,114 +137,113 @@ const CreatineDay = (props :any) => {
                 <ActionsheetDragIndicatorWrapper>
                   <ActionsheetDragIndicator />
                 </ActionsheetDragIndicatorWrapper>
-                <View style={{width: "100%"}}>
-
-                    <ActionsheetSectionHeaderText className="text-xl">
+                <View style={{ width: "100%" }}>
+                  <ActionsheetSectionHeaderText className="text-xl">
                     Edit Creatine Entry
-                    </ActionsheetSectionHeaderText>
-                    <ActionsheetItem
+                  </ActionsheetSectionHeaderText>
+                  <ActionsheetItem
                     onPress={() => {
-                        setShowModal(log.id);
-                        setEditId(log.id);
-                        setDose(log.dose_grams);
-                        setForm(log.form);
+                      setShowModal(log.id);
+                      setEditId(log.id);
+                      setDose(log.dose_grams);
+                      setForm(log.form);
                     }}
-                    >
+                  >
                     <ActionsheetItemText className="text-lg">
-                        Edit
+                      Edit
                     </ActionsheetItemText>
                     <Modal
-                        isOpen={showModal === log.id}
-                        onClose={() => {
+                      isOpen={showModal === log.id}
+                      onClose={() => {
                         setShowModal(false);
-                        }}
-                        size="md"
+                      }}
+                      size="md"
                     >
-                        <ModalBackdrop />
-                        <ModalContent>
+                      <ModalBackdrop />
+                      <ModalContent>
                         <ModalHeader>
-                            <Heading size="md" className="text-typography-950">
+                          <Heading size="md" className="text-typography-950">
                             Edit Creatine Log
-                            </Heading>
-                            <ModalCloseButton>
+                          </Heading>
+                          <ModalCloseButton>
                             <Icon
-                                as={CloseIcon}
-                                size="md"
-                                className="stroke-background-400 group-[:hover]/modal-close-button:stroke-background-700 group-[:active]/modal-close-button:stroke-background-900 group-[:focus-visible]/modal-close-button:stroke-background-900"
+                              as={CloseIcon}
+                              size="md"
+                              className="stroke-background-400 group-[:hover]/modal-close-button:stroke-background-700 group-[:active]/modal-close-button:stroke-background-900 group-[:focus-visible]/modal-close-button:stroke-background-900"
                             />
-                            </ModalCloseButton>
+                          </ModalCloseButton>
                         </ModalHeader>
                         <ModalBody>
-                            <View>
+                          <View>
                             <Text>Dose</Text>
                             <Input className="mb-[10]">
-                                <InputField
+                              <InputField
                                 onChangeText={(e: string) => setDose(e)}
-                                >
+                              >
                                 {dose.toString()}
-                                </InputField>
+                              </InputField>
                             </Input>
                             <Text>Type</Text>
                             <Select
-                                onValueChange={(value: string) => setForm(value)}
+                              onValueChange={(value: string) => setForm(value)}
                             >
-                                <SelectTrigger
+                              <SelectTrigger
                                 className="justify-between"
                                 variant="outline"
                                 size="md"
-                                >
+                              >
                                 <SelectInput placeholder={form} />
                                 <SelectIcon
-                                    className="mr-3"
-                                    as={ChevronDownIcon}
+                                  className="mr-3"
+                                  as={ChevronDownIcon}
                                 />
-                                </SelectTrigger>
-                                <SelectPortal>
+                              </SelectTrigger>
+                              <SelectPortal>
                                 <SelectBackdrop />
                                 <SelectContent>
-                                    <SelectDragIndicatorWrapper>
+                                  <SelectDragIndicatorWrapper>
                                     <SelectDragIndicator />
-                                    </SelectDragIndicatorWrapper>
-                                    <SelectItem
+                                  </SelectDragIndicatorWrapper>
+                                  <SelectItem
                                     label="Monohydrate"
                                     value="monohydrate"
-                                    />
-                                    <SelectItem label="HCL" value="hcl" />
-                                    <SelectItem
+                                  />
+                                  <SelectItem label="HCL" value="hcl" />
+                                  <SelectItem
                                     label="Micronized"
                                     value="micronized"
-                                    />
+                                  />
                                 </SelectContent>
-                                </SelectPortal>
+                              </SelectPortal>
                             </Select>
-                            </View>
+                          </View>
                         </ModalBody>
                         <ModalFooter>
-                            <Button
+                          <Button
                             variant="outline"
                             action="secondary"
                             onPress={() => {
-                                setShowModal(false);
+                              setShowModal(false);
                             }}
-                            >
+                          >
                             <ButtonText>Cancel</ButtonText>
-                            </Button>
-                            <Button
+                          </Button>
+                          <Button
                             onPress={() => {
-                                handleEdit(editId);
+                              handleEdit(editId);
                             }}
-                            >
+                          >
                             <ButtonText>Edit</ButtonText>
-                            </Button>
+                          </Button>
                         </ModalFooter>
-                        </ModalContent>
+                      </ModalContent>
                     </Modal>
-                    </ActionsheetItem>
-                    <ActionsheetItem onPress={() => handleDelete(log.id)}>
+                  </ActionsheetItem>
+                  <ActionsheetItem onPress={() => handleDelete(log.id)}>
                     <ActionsheetItemText className="text-lg">
-                        Delete
+                      Delete
                     </ActionsheetItemText>
-                    </ActionsheetItem>
+                  </ActionsheetItem>
                 </View>
               </ActionsheetContent>
             </Actionsheet>

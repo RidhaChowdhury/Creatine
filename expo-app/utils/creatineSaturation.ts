@@ -8,7 +8,7 @@ export const calculateSaturation = (logs: CreatineLogEntry[]): number[] => {
   const saturations: number[] = [];
   const loadingRate = 0.25; // Increased absorption rate during loading
   const maintenanceRate = 0.15; // Base absorption rate
-  const decayRate = 0.03; // Slightly increased decay rate
+  const decayRate = 0.01; // Slightly increased decay rate
 
   logs.forEach((entry, i) => {
     const dose = entry.doseGrams;
@@ -38,4 +38,38 @@ export const calculateSaturation = (logs: CreatineLogEntry[]): number[] => {
   });
 
   return saturations;
+};
+
+export const calculateDaysTillSaturated = (
+  currentSaturation: number,
+  plannedDailyDose: number = 5 // Default maintenance dose
+): number => {
+  const TARGET_SATURATION = 0.90;
+  const DAILY_DECAY = 0.005;
+
+  // Determine absorption parameters based on dose
+  const isLoadingPhase = plannedDailyDose >= 15;
+  const rate = isLoadingPhase ? 0.25 : 0.15;
+  const effectiveDose = isLoadingPhase
+    ? Math.min(plannedDailyDose, 20) / 20
+    : Math.min(plannedDailyDose, 5) / 5;
+
+  let days = 0;
+  let saturation = currentSaturation;
+
+  while (saturation < TARGET_SATURATION && days < 30) {
+    // Max 30 day cap
+    days++;
+
+    // Calculate next day's saturation
+    saturation = saturation * (1 - DAILY_DECAY); // First apply decay
+    if (plannedDailyDose > 0) {
+      saturation = Math.min(
+        saturation + rate * effectiveDose * (1 - saturation),
+        1
+      );
+    }
+  }
+
+  return days > 30 ? 30 : days; // Return capped value
 };

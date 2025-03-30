@@ -15,11 +15,12 @@ import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
-import { calculateSaturation, CreatineLogEntry } from "@/utils/creatineSaturation";
+import { calculateSaturation, CreatineLogEntry, calculateDaysTillSaturated } from "@/utils/creatineSaturation";
 
 type CommitData = {
   date: string;
   count: number;
+  saturation?:number;
 };
 
 type DistributionData = {
@@ -39,8 +40,24 @@ export const CreatineHistory = () => {
       const[streakData, setStreakData] = useState<number>(0);
       const [daysLoggedData, setDaysLoggedData] = useState<number>(0);
       const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split("T")[0]);
+      const today = new Date().toISOString().split("T")[0] ? new Date().toISOString().split("T")[0] : '2025-03-30';
     
       const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
+
+      const getCommitDataForDate = (
+        isoDate: string,
+        commitData: CommitData[],
+        fallback: { count: number; saturation: number } = {
+          count: 0,
+          saturation: 0,
+        }
+      ) => {
+        const targetDate = isoDate.split("T")[0];
+        return (
+          commitData.find((entry) => entry.date === targetDate) || fallback
+        );
+      };
+
         useEffect(() => {
             const fetchCreatineData = async () => {
               try {
@@ -77,10 +94,14 @@ export const CreatineHistory = () => {
                 }
 
                 const saturations = calculateSaturation(entries);
-
+                const turnIntoCount = (saturation: number) => {
+                  if(saturation == 0)
+                    return -1;
+                  return Math.floor(saturation * 6);
+                }
                 const heatmapData = entries.map((entry, i) => ({
                   date: entry.date,
-                  count: Math.floor(saturations[i] * 6), // Scale 0-1 to 0-4,
+                  count: turnIntoCount(saturations[i]), // Scale 0-1 to 0-4,
                   saturation: saturations[i]
                 }));
                 console.log(heatmapData);
@@ -225,122 +246,159 @@ export const CreatineHistory = () => {
         }
 
         return (
-            <View>
+          <View>
             {loading ? (
-                <View className="py-8">
+              <View className="py-8">
                 <ActivityIndicator size="large" color="#ffffff" />
+              </View>
+            ) : (
+              <VStack>
+                <Box className="mt-4 bg-primary-0 rounded-[15px]">
+                  <HeatCalendar
+                    data={commitData}
+                    endDate={new Date().toISOString().split("T")[0]}
+                    numDays={daysToShow}
+                    onDayPress={(date) => setSelectedDay(date)}
+                    colors={[
+                      "#335533",
+                      "#557755",
+                      "#779977",
+                      "#99BB99",
+                      "#BBDDBB",
+                      "#DDFFDD",
+                    ].toReversed()}
+                  />
+                  <CreatineDay
+                    day={selectedDay}
+                    dayData={getCommitDataForDate(selectedDay, commitData, {
+                      count: 0,
+                      saturation: 0,
+                    })}
+                  />
+                </Box>
+                <View className="flex-row items-center pt-[20]">
+                  <ChartPie color={"white"} size={32} />
+                  <Text className="text-[20px] font-semibold pl-[7]">
+                    Metrics
+                  </Text>
                 </View>
-            ):
-            (
-                <VStack>
-                    <Box className="mt-4 bg-primary-0 rounded-[15px]">
-                    <HeatCalendar
-                        data={commitData}
-                        endDate={new Date().toISOString().split("T")[0]}
-                        numDays={daysToShow}
-                        onDayPress={(date) => setSelectedDay(date)}
-                        colors={["#335533", "#557755", "#779977", "#99BB99", "#BBDDBB", "#DDFFDD"]}
-                    />
-                    <CreatineDay day={selectedDay} />
-                    </Box>
-                    <View className="flex-row items-center pt-[20]">
-                    <ChartPie color={"white"} size={32} />
-                    <Text className="text-[20px] font-semibold pl-[7]">Metrics</Text>
-                    </View>
-                    <Box className="mt-4 bg-primary-0 rounded-[15px] p-4">
-                    {distributionData.length > 0 ? (
-                        <View
-                        className="flex-row items-center justify-start"
-                        style={{ height: 150 }}
+                <Box className="mt-4 bg-primary-0 rounded-[15px] p-4">
+                  {distributionData.length > 0 ? (
+                    <View
+                      className="flex-row items-center justify-start"
+                      style={{ height: 150 }}
+                    >
+                      {/* Chart container with explicit dimensions */}
+                      <View className="w-3/5">
+                        {/* Maintain square aspect ratio */}
+                        <PolarChart
+                          data={distributionData}
+                          labelKey="form"
+                          valueKey="count"
+                          colorKey="color"
                         >
-                        {/* Chart container with explicit dimensions */}
-                        <View className="w-3/5">
-                            {/* Maintain square aspect ratio */}
-                            <PolarChart
-                            data={distributionData}
-                            labelKey="form"
-                            valueKey="count"
-                            colorKey="color"
-                            >
-                            <Pie.Chart innerRadius={"50%"} size={125} />
-                            </PolarChart>
-                        </View>
+                          <Pie.Chart innerRadius={"50%"} size={125} />
+                        </PolarChart>
+                      </View>
 
-                        {/* Legend - takes remaining space */}
-                        <View className="w-2/5 justify-center">
-                            {distributionData.map((item, index) => (
-                            <View key={index} className="flex-row items-center mb-2">
-                                <View
-                                className="w-3 h-3 rounded-full mr-2"
-                                style={{ backgroundColor: item.color }}
-                                />
-                                <Text className="text-foreground text-sm">
-                                <Text className="font-medium">
-                                    {item.form} ({item.count})
-                                </Text>
-                                </Text>
-                            </View>
-                            ))}
-                        </View>
-                        </View>
-                    ) : (
-                        <Text className="text-center py-8 text-foreground">
-                        No creatine form data available
-                        </Text>
-                    )}
-                    </Box>
+                      {/* Legend - takes remaining space */}
+                      <View className="w-2/5 justify-center">
+                        {distributionData.map((item, index) => (
+                          <View
+                            key={index}
+                            className="flex-row items-center mb-2"
+                          >
+                            <View
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <Text className="text-foreground text-sm">
+                              <Text className="font-medium">
+                                {item.form} ({item.count})
+                              </Text>
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ) : (
+                    <Text className="text-center py-8 text-foreground">
+                      No creatine form data available
+                    </Text>
+                  )}
+                </Box>
 
-                    <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-                    <View className="flex-row items-center justify-between">
-                        {/* First Consistency */}
-                        <View className="flex-1 items-center">
-                        <Text className="text-sm mb-1">Consistency</Text>
+                <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
+                  <View className="flex-row items-center justify-between">
+                    {/* First Consistency */}
+                    <View className="flex-1 items-center">
+                      <Text className="text-sm mb-1">Consistency</Text>
+                      <Text className="text-xl font-bold">
+                        {consistencyData ? `${consistencyData}%` : "0%"}
+                      </Text>
+                    </View>
+
+                    <Divider orientation="vertical" />
+
+                    {/* Streak - Centered with icon and number */}
+                    <View className="flex-1 items-center">
+                      <Text className="text-sm mb-1">Streak</Text>
+                      <View className="flex-row items-center justify-center">
+                        <Flame color="white" size={18} className="mr-1" />
                         <Text className="text-xl font-bold">
-                            {consistencyData ? `${consistencyData}%` : "0%"}
+                          {streakData ?? 0}
                         </Text>
-                        </View>
-
-                        <Divider orientation="vertical" />
-
-                        {/* Streak - Centered with icon and number */}
-                        <View className="flex-1 items-center">
-                        <Text className="text-sm mb-1">Streak</Text>
-                        <View className="flex-row items-center justify-center">
-                            <Flame color="white" size={18} className="mr-1" />
-                            <Text className="text-xl font-bold">{streakData ?? 0}</Text>
-                        </View>
-                        </View>
-
-                        <Divider orientation="vertical" />
-
-                        {/* Second Metric - Replace with something different */}
-                        <View className="flex-1 items-center">
-                        <Text className="text-sm mb-1">Days Logged</Text>
-                        <Text className="text-xl font-bold">{daysLoggedData}</Text>
-                        </View>
+                      </View>
                     </View>
-                    </Box>
 
-                    <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-                    <View className="flex-row items-center justify-between">
-                        {/* First Consistency */}
-                        <View className="flex-1 items-center">
-                        <Text className="text-md mb-1">Saturation</Text>
-                        <Text className="text-2xl font-bold">54%</Text>
-                        </View>
+                    <Divider orientation="vertical" />
 
-                        <Divider orientation="vertical" />
-
-                        {/* Streak - Centered with icon and number */}
-                        <View className="flex-1 items-center">
-                        <Text className="text-md mb-1">Till Saturation</Text>
-                        <Text className="text-2xl font-bold">18 days</Text>
-                        </View>
+                    {/* Second Metric - Replace with something different */}
+                    <View className="flex-1 items-center">
+                      <Text className="text-sm mb-1">Days Logged</Text>
+                      <Text className="text-xl font-bold">
+                        {daysLoggedData}
+                      </Text>
                     </View>
-                    </Box>
-                </VStack>
+                  </View>
+                </Box>
+
+                <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
+                  <View className="flex-row items-center justify-between">
+                    {/* First Consistency */}
+                    <View className="flex-1 items-center">
+                      <Text className="text-md mb-1">Saturation</Text>
+                      <Text className="text-2xl font-bold">
+                        {Math.floor(
+                          (getCommitDataForDate(today, commitData, {
+                            count: 0,
+                            saturation: 0,
+                          })?.saturation ?? 0) * 100
+                        )}
+                        %
+                      </Text>
+                    </View>
+
+                    <Divider orientation="vertical" />
+
+                    {/* Streak - Centered with icon and number */}
+                    <View className="flex-1 items-center">
+                      <Text className="text-md mb-1">Till Saturation</Text>
+                      <Text className="text-2xl font-bold">
+                        {calculateDaysTillSaturated(
+                          getCommitDataForDate(today, commitData, {
+                            count: 0,
+                            saturation: 0,
+                          })?.saturation ?? 0
+                        , 5)}{" "}
+                        days
+                      </Text>
+                    </View>
+                  </View>
+                </Box>
+              </VStack>
             )}
-            </View>
+          </View>
         );
 
 }

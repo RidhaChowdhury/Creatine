@@ -226,7 +226,7 @@ export const WaterHistory = () => {
                       "#9999BB",
                       "#BBBBDD",
                       "#DDDDFF",
-                    ]}
+                    ].toReversed()}
                   />
                   <WaterDay day={selectedDay} />
                 </Box>
@@ -277,7 +277,7 @@ export const WaterHistory = () => {
                     </View>
                   ) : (
                     <Text className="text-center py-8 text-foreground">
-                      No creatine drink_type data available
+                      No water drink_type data available
                     </Text>
                   )}
                 </Box>
@@ -313,24 +313,6 @@ export const WaterHistory = () => {
                       <Text className="text-xl font-bold">
                         {daysLoggedData}
                       </Text>
-                    </View>
-                  </View>
-                </Box>
-
-                <Box className="bg-primary-0 rounded-[15px] p-6 mt-4">
-                  <View className="flex-row items-center justify-between">
-                    {/* First Consistency */}
-                    <View className="flex-1 items-center">
-                      <Text className="text-md mb-1">Saturation</Text>
-                      <Text className="text-2xl font-bold">54%</Text>
-                    </View>
-
-                    <Divider orientation="vertical" />
-
-                    {/* Streak - Centered with icon and number */}
-                    <View className="flex-1 items-center">
-                      <Text className="text-md mb-1">Till Saturation</Text>
-                      <Text className="text-2xl font-bold">18 days</Text>
                     </View>
                   </View>
                 </Box>

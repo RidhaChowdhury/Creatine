@@ -95,7 +95,7 @@ const WaterDay = (props :any) => {
       </View>
       <View className="mb-[10] px-[15]">
         {data.length === 0 && (
-          <Text className="text-white">No water logs for this day...</Text>
+          <Text className="text-white ml-4 mb-[10]">No water logs for this day...</Text>
         )}
         {data.map((log) => (
           <View
