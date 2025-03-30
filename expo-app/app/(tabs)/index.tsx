@@ -33,6 +33,14 @@ const Today = () => {
   const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
   const { user } = useAuth();
 
+  const hydrationFactors: any = {
+    'water': 1.0,
+    'coffee': 0.98,
+    'tea': 0.99,
+    'soda': 0.93,
+    'juice': 0.87
+  };
+
   const [animationKey, setAnimationKey] = useState(0);
 
   useFocusEffect(
@@ -57,7 +65,7 @@ const Today = () => {
     // Fetch water logs
     const { data: waterData } = await supabase
       .from("water_logs")
-      .select("volume_floz")
+      .select("volume_floz, drink_type")
       .eq("user_id", user.id)
       .gte("logged_at", `${today}T00:00:00`)
       .lte("logged_at", `${today}T23:59:59`);
@@ -80,7 +88,7 @@ const Today = () => {
       setCreatineAmount(Number(total.toFixed(1)));
     }
     if (waterData) {
-      const total = waterData.reduce((sum, log) => sum + log.volume_floz, 0);
+      const total = waterData.reduce((sum, log) => {return Math.floor(sum + log.volume_floz * (hydrationFactors[log.drink_type] ?? 1))}, 0);
       setWaterAmount(total);
     }
   }, []);
@@ -140,10 +148,11 @@ const Today = () => {
 
       <HStack className="absolute bottom-4 right-4" space="xl">
         {/* Creatine Button (left) */}
-        <Animated.View
+        {/* <Animated.View
           key={animationKey}
           entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}
-        >
+        > */}
+        <View>
           <Button
             size="lg"
             className="bg-primary-0 rounded-full w-20 h-20"
@@ -151,13 +160,14 @@ const Today = () => {
           >
           <CreatineScoopIcon color={"white"} size={50} />
           </Button>
-        </Animated.View>
+        </View>
 
         {/* Water Button (right) */}
-        <Animated.View
+        {/* <Animated.View
           key={`water-${animationKey}`}
           entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}
-        >
+        > */}
+        <View>
           <Button
             size="lg"
             className="bg-primary-0 rounded-full w-20 h-20"
@@ -165,7 +175,7 @@ const Today = () => {
           >
             <GlassWater color={"white"} size={32} />
           </Button>
-        </Animated.View>
+        </View>
       </HStack>
 
       {/* Water Logging Action Sheet */}
