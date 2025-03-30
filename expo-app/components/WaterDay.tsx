@@ -60,7 +60,7 @@ const WaterDay = (props :any) => {
 
     const handleEdit = async (id: string) => {  
         const { error } = await supabase
-        .from('water')
+        .from('water_logs')
         .update({ volume_floz: volume, drink_type: drinkType })
         .eq('id', id)
         if (error) {
@@ -195,13 +195,21 @@ const WaterDay = (props :any) => {
                                     <SelectDragIndicator />
                                   </SelectDragIndicatorWrapper>
                                   <SelectItem
-                                    label="Monohydrate"
-                                    value="monohydrate"
+                                    label="Water"
+                                    value="water"
                                   />
-                                  <SelectItem label="HCL" value="hcl" />
+                                  <SelectItem label="Coffee" value="coffee" />
                                   <SelectItem
-                                    label="Micronized"
-                                    value="micronized"
+                                    label="Juice"
+                                    value="juice"
+                                  />
+                                  <SelectItem
+                                    label="Tea"
+                                    value="tea"
+                                  />
+                                  <SelectItem
+                                    label="Soda"
+                                    value="soda"
                                   />
                                 </SelectContent>
                               </SelectPortal>
