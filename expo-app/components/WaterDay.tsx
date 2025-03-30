@@ -90,8 +90,8 @@ const WaterDay = (props :any) => {
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">
-        <Text className="text-lg font-bold text-white">{props.day}</Text>
-        <Text className="text-lg font-bold text-white">{}</Text>
+        <Text className="text-[20px] font-bold text-white">Total: {data.reduce((total, log) => total + log.volume_floz, 0)} fl oz</Text>
+        <Text className="text-[20px] font-bold text-white">{props.day}</Text>
       </View>
       <View className="mb-[10] px-[15]">
         {data.length === 0 && (
