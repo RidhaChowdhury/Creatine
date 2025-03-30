@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Alert, StyleSheet, TextInput, View, TouchableOpacity, SafeAreaView  } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, TextInput, View, TouchableOpacity, SafeAreaView, Platform, Keyboard  } from "react-native";
 import { supabase } from "@/lib/supabase";
 import {router} from "expo-router";
 import { Input, InputField } from "@/components/ui/input";
@@ -10,6 +10,23 @@ export default function SignUP() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0)
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   async function signUpWithEmail() {
     setLoading(true);
@@ -24,7 +41,7 @@ export default function SignUP() {
 
   return (
     <SafeAreaView className='h-full bg-background-0 flex'>
-      <View className='flex-1 justify-center mt-[-25%] p-[30]'>
+      <View className='flex-1 justify-center mt-[-25%] p-[30]' style={{ paddingBottom: keyboardHeight}}>
         <Text className="text-[30px] font-bold pb-[5]">Create an account</Text>
         <View>
           <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>

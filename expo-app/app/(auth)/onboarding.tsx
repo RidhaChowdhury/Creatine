@@ -1,5 +1,5 @@
-import { View, SafeAreaView, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { View, SafeAreaView, TouchableOpacity, Platform, Keyboard } from 'react-native'
+import React, { useEffect, useState } from 'react'
 import { Text } from '@/components/ui/text'
 import { Input, InputField } from '@/components/ui/input'
 import {
@@ -35,6 +35,24 @@ const Onboarding = () => {
   const [isHeightInvalid, setIsHeightInvalid] = React.useState(false)
   const [isWeightInvalid, setIsWeightInvalid] = React.useState(false)
   const [isSexInvalid, setIsSexInvalid] = React.useState(false)
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0)
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   const handleSubmit = async () => {
     // input validation
@@ -82,7 +100,7 @@ const Onboarding = () => {
 
   return (
     <SafeAreaView className='bg-background-0 h-full'>
-      <View className='flex-1 justify-center mt-[-20%] p-[30]'>
+      <View className='flex-1 justify-center mt-[-20%] p-[30]' style={{ paddingBottom: keyboardHeight - 120}}>
         <Text className='text-[30px] font-bold'>Welcome aboard!</Text>
         <Text className='text-[14px] mt-2'>Let's get started by filling in some more details.</Text>
         <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your name?</Text>
@@ -126,7 +144,7 @@ const Onboarding = () => {
         <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your sex?</Text>
         <Select isRequired={true} isInvalid={isSexInvalid} onValueChange={(value: string) => setFormData(prev => ({ ...prev, sex: value }))}>
           <SelectTrigger variant="outline" size="md" className='justify-between h-[45]'>
-              <SelectInput placeholder={"Male"} />
+              <SelectInput placeholder={""} />
               <SelectIcon className="mr-3" as={ChevronDownIcon} />
           </SelectTrigger>
           <SelectPortal>

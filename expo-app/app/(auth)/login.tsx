@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Alert, StyleSheet, View, TouchableOpacity, SafeAreaView  } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, View, TouchableOpacity, SafeAreaView, Platform, Keyboard  } from "react-native";
 import { supabase } from "@/lib/supabase";
 import {router} from "expo-router";
 import { Input, InputField } from "@/components/ui/input";
@@ -9,6 +9,23 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => setKeyboardHeight(e.endCoordinates.height)
+    );
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0)
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   async function signInWithEmail() {
     setLoading(true);
@@ -23,7 +40,7 @@ export default function Login() {
 
   return (
     <SafeAreaView className='h-full bg-background-0 flex'>
-      <View className='flex-1 justify-center mt-[-20%] p-[30]'>
+      <View className='flex-1 justify-center mt-[-20%] p-[30]' style={{ paddingBottom: keyboardHeight}}>
         <Text className="text-[30px] font-bold pb-[5]">Login to your account</Text>
         <View>
           <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
@@ -34,16 +51,18 @@ export default function Login() {
           </TouchableOpacity>
         </View>
         <View>
-          <Text className="text-[14px] font-semibold pb-[5]">Email</Text>
-          <Input className="h-[40]">
-              <InputField placeholder="email@website.com" onChangeText={(text:string) => setEmail(text)}></InputField>
-          </Input>
-        </View>
-        <View className='pb-4'>
-          <Text className="text-[14px] font-semibold pb-[5] pt-[20]">Password</Text>
-          <Input className="h-[40]">
-            <InputField secureTextEntry={true} placeholder="********" onChangeText={(text:string) => setPassword(text)}></InputField>
-          </Input>
+          <View>
+            <Text className="text-[14px] font-semibold pb-[5]">Email</Text>
+            <Input className="h-[40]">
+                <InputField placeholder="email@website.com" onChangeText={(text:string) => setEmail(text)}></InputField>
+            </Input>
+          </View>
+          <View className='pb-4'>
+            <Text className="text-[14px] font-semibold pb-[5] pt-[20]">Password</Text>
+            <Input className="h-[40]">
+              <InputField secureTextEntry={true} placeholder="********" onChangeText={(text:string) => setPassword(text)}></InputField>
+            </Input>
+          </View>
         </View>
         <View className="flex flex-row justify-end mt-2">
           <TouchableOpacity className="flex-end">
