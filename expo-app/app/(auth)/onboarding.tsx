@@ -82,39 +82,33 @@ const Onboarding = () => {
 
   return (
     <SafeAreaView className='bg-background-0 h-full'>
-      <View className='px-[15] pt-[20]'>
-        <Text className='text-[40px] font-bold'>Welcome aboard!</Text>
-        <Text className='text-[20px] mt-2'>Let's get started by filling in some more details.</Text>
-        <Text className='text-[20px] py-[20]'>What's your name?</Text>
+      <View className='flex-1 justify-center mt-[-20%] p-[30]'>
+        <Text className='text-[30px] font-bold'>Welcome aboard!</Text>
+        <Text className='text-[14px] mt-2'>Let's get started by filling in some more details.</Text>
+        <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your name?</Text>
         <Input className='h-[45]' isRequired={true} isInvalid={isNameInvalid}>
           <InputField placeholder='Sammy' onChangeText={(e: string) => setFormData(prev => ({ ...prev, name: e }))}></InputField>
         </Input>
         <View className='flex-row items-center justify-between'>
-          <Text className='text-[20px] py-[20]'>What's your height (in inches)?</Text>
-          <TouchableOpacity onPress={() => setShowAlertDialog(true)}>
-              <Text className='text-[8px]' >Why do we need this?</Text>
-            </TouchableOpacity>
+          <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your height (in inches)?</Text>
         </View>
         <Input className='h-[45]' isRequired={true} isInvalid={isHeightInvalid}>
           <InputField placeholder='72' onChangeText={(e: string) => setFormData(prev => ({ ...prev, height: e }))}></InputField>
         </Input>
         <View className='flex-row items-center justify-between'>
-          <Text className='text-[20px] py-[20]'>What's your weight (lbs)?</Text>
-          <TouchableOpacity onPress={() => setShowAlertDialog(true)}>
-            <Text className='text-[8px]' >Why do we need this?</Text>
-          </TouchableOpacity>
+          <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your weight (lbs)?</Text>
 
           <AlertDialog isOpen={showAlertDialog} onClose={handleClose} size="md">
             <AlertDialogBackdrop />
             <AlertDialogContent>
               <AlertDialogHeader>
                 <Heading className="text-typography-950 font-semibold" size="md">
-                  Why do we need your height and weight?
+                  Why do we need your height, weight, and sex?
                 </Heading>
               </AlertDialogHeader>
               <AlertDialogBody className="mt-3 mb-4">
                 <Text size="sm">
-                  We ask for your height and weight to provide more accurate hydration and creatine intake recommendations tailored to your body. These factors help us estimate your daily needs, so you get the right balance for optimal performance and well-being.
+                  We ask for your height, weight, and sex to provide more accurate hydration and creatine intake recommendations tailored to your body. These factors help us estimate your daily needs, so you get the right balance for optimal performance and well-being.
                 </Text>
               </AlertDialogBody>
               <AlertDialogFooter className="">
@@ -129,7 +123,7 @@ const Onboarding = () => {
           <InputField placeholder='200' onChangeText={(e: string) => setFormData(prev => ({ ...prev, weight: e }))}></InputField>
         </Input>
 
-        <Text className='text-[20px] py-[20]'>What's your sex?</Text>
+        <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your sex?</Text>
         <Select isRequired={true} isInvalid={isSexInvalid} onValueChange={(value: string) => setFormData(prev => ({ ...prev, sex: value }))}>
           <SelectTrigger variant="outline" size="md" className='justify-between h-[45]'>
               <SelectInput placeholder={"Male"} />
@@ -146,6 +140,9 @@ const Onboarding = () => {
               </SelectContent>
           </SelectPortal>
         </Select>
+        <TouchableOpacity className='flex flex-row justify-end mt-2' onPress={() => setShowAlertDialog(true)}>
+            <Text className='text-[12px]' >Why do we need this?</Text>
+          </TouchableOpacity>
         <Button className='mt-[20] h-[45]' onPress={() => handleSubmit()}>
           <ButtonText className='text-[20px]'>Take me to the app!</ButtonText>
         </Button>

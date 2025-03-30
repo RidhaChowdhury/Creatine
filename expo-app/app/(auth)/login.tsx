@@ -24,7 +24,7 @@ export default function Login() {
   return (
     <SafeAreaView className='h-full bg-background-0 flex'>
       <View className='flex-1 justify-center mt-[-20%] p-[30]'>
-        <Text className="text-[24px] font-bold pb-[5]">Login to your account</Text>
+        <Text className="text-[30px] font-bold pb-[5]">Login to your account</Text>
         <View>
           <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
             <View className="flex-row">
