@@ -181,13 +181,26 @@ export const WaterHistory = () => {
               setDaysLoggedData(0);
             }
           };
+                    const fetchAllData = async () => {
+                      try {
+                        setLoading(true); // Ensure loading is true when starting
 
-          fetchWaterData();
-          fetchWaterForms();
-          fetchWaterConsistency();
-          fetchStreak();
-          fetchDaysLogged();
-          setLoading(false);
+                        // Run all fetches in parallel
+                        await Promise.all([
+                          fetchWaterData(),
+                          fetchWaterForms(),
+                          fetchWaterConsistency(),
+                          fetchStreak(),
+                          fetchDaysLogged(),
+                        ]);
+                      } catch (error) {
+                        console.error("Error fetching data:", error);
+                      } finally {
+                        setLoading(false); // Only set loading to false when ALL data is loaded
+                      }
+                    };
+
+                    fetchAllData();
         }, [daysToShow, refreshTrigger.water]);
 
         function generateRandomColor(): string {

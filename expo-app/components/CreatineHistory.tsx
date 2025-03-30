@@ -221,12 +221,27 @@ export const CreatineHistory = () => {
             }
           };
 
-          fetchCreatineData();
-          fetchCreatineForms();
-          fetchCreatineConsistency();
-          fetchStreak();
-          fetchDaysLogged();
-          setLoading(false);
+          const fetchAllData = async () => {
+            try {
+              setLoading(true); // Ensure loading is true when starting
+
+              // Run all fetches in parallel
+              await Promise.all([
+                fetchCreatineData(),
+                fetchCreatineForms(),
+                fetchCreatineConsistency(),
+                fetchStreak(),
+                fetchDaysLogged(),
+              ]);
+            } catch (error) {
+              console.error("Error fetching data:", error);
+            } finally {
+              setLoading(false); // Only set loading to false when ALL data is loaded
+            }
+          };
+
+          fetchAllData();
+
         }, [daysToShow, refreshTrigger.creatine]);
 
         function generateRandomColor(): string {
