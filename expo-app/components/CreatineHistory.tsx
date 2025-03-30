@@ -411,7 +411,7 @@ export const CreatineHistory = () => {
                           })?.saturation ?? 0,
                           5
                         )}
-                        days
+                         days
                       </Text>
                     </View>
                   </View>
