@@ -100,7 +100,7 @@ export const CreatineLogActionsheet: React.FC<CreatineLogActionsheetProps> = ({
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
 
-          <ActionsheetSectionHeaderText>Creatine</ActionsheetSectionHeaderText>
+          <ActionsheetSectionHeaderText className="text-2xl">Creatine</ActionsheetSectionHeaderText>
 
           <VStack className="w-full px-4" space="md">
             <HStack className="w-full" space="md">

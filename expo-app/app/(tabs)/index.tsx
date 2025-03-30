@@ -56,23 +56,18 @@ const Today = () => {
 
     if (userSettings) {
       const { creatine_goal, water_goal } = userSettings;
-      console.log("User Settings: ", userSettings);
       setDailyGoal({
         creatine: creatine_goal,
         water: water_goal,
       });
-      console.log(dailyGoal);
     }
     if (creatineData) {
       const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
       setCreatineAmount(Number(total.toFixed(1)));
-      console.log("Total Creatine Amount: ", total); // Log the total for debugging
     }
     if (waterData) {
       const total = waterData.reduce((sum, log) => sum + log.volume_floz, 0);
       setWaterAmount(total);
-      console.log(dailyGoal.water);
-      console.log("Total Water Amount: ", total/dailyGoal.water); // Log the total for debugging
     }
   }, []);
 

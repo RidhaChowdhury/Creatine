@@ -21,15 +21,9 @@ interface Props {
   endDate: string; // YYYY-MM-DD format
   numDays: number; // Should be multiple of 7
   onDayPress?: (date: string) => void;
+  colors: string[];
 }
-const colors :string[] = ["#335533", "#557755", "#779977", "#99BB99", "#BBDDBB", "#DDFFDD"];
-const getColor = (count: number) => {
-  // Map count to color index, ensuring it doesn't exceed the array length
-  if (count < 0)
-    return "#666666";
-  const index = Math.min(count, colors.length - 1);
-  return colors[index];
-}
+
 
 // Helper function to parse date string without timezone issues
 const parseDateString = (dateStr: string) => {
@@ -37,11 +31,19 @@ const parseDateString = (dateStr: string) => {
   return new Date(Date.UTC(year, month - 1, day));
 };
 
-const HeatCalendar = ({ data, endDate, numDays, onDayPress }: Props) => {
+const HeatCalendar = ({ data, endDate, numDays, onDayPress, colors }: Props) => {
   // Parse end date in UTC to avoid timezone issues
   const end = parseDateString(endDate);
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - numDays + 1);
+  
+  const getColor = (count: number) => {
+    // Map count to color index, ensuring it doesn't exceed the array length
+    if (count < 0)
+      return "#666666";
+    const index = Math.min(count, colors.length - 1);
+    return colors[index];
+  }
 
   // Generate all dates in the range (UTC)
   const allDates = Array.from({ length: numDays }, (_, i) => {

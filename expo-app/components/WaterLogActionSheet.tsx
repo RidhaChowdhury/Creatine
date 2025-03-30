@@ -105,7 +105,9 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
 
-          <ActionsheetSectionHeaderText>Water</ActionsheetSectionHeaderText>
+          <ActionsheetSectionHeaderText className="text-2xl">
+            Water
+          </ActionsheetSectionHeaderText>
 
           <VStack className="w-full px-4" space="md">
             <HStack className="w-full" space="md">
@@ -135,9 +137,13 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                     setDrinkType(value as DrinkType)
                   }
                 >
-                  <SelectTrigger variant="outline" size="md" className="justify-between">
+                  <SelectTrigger
+                    variant="outline"
+                    size="md"
+                    className="justify-between"
+                  >
                     <SelectInput placeholder="Select drink" />
-                    <SelectIcon as={ChevronDownIcon} className="mx-2"/>
+                    <SelectIcon as={ChevronDownIcon} className="mx-2" />
                   </SelectTrigger>
                   <SelectPortal>
                     <SelectBackdrop />
@@ -164,14 +170,14 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
               size="lg"
               variant="solid"
               className={`w-full bg-primary-0 ${!amount ? "opacity-70" : ""}`}
-              onPress={async() => {
+              onPress={async () => {
                 if (amount) {
-                    await logWaterIntake(amount, drinkType);
-                    onLog(amount, drinkType);
-                    Keyboard.dismiss();
-                    handleClose();
+                  await logWaterIntake(amount, drinkType);
+                  onLog(amount, drinkType);
+                  Keyboard.dismiss();
+                  handleClose();
                 }
-            }}
+              }}
               isDisabled={!amount}
             >
               <ButtonText className="font-medium text-white">

@@ -32,61 +32,61 @@ import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragI
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { ActionsheetSectionHeaderText } from './ui/select/select-actionsheet';
 
-const CreatineDay = (props :any) => {
+const WaterDay = (props :any) => {
     const { user } = useAuth();
     const [data, setData] =  React.useState<any[]>([]);
     const [showActionsheet, setShowActionsheet] = React.useState(false)
     const handleClose = () => setShowActionsheet(false)
     const [showModal, setShowModal] = React.useState(false)
     const [editId, setEditId] = React.useState('')
-    const [dose, setDose] = React.useState('')
-    const [form, setForm] = React.useState('')
+    const [volume, setVolume] = React.useState('')
+    const [drinkType, setDrinkType] = React.useState('')
     const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
     
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase
-        .from('creatine_logs')
+        .from('water_logs')
         .delete()
         .eq('id', id)
         if (error) {
-            console.error('Error deleting creatine log:', error);
+            console.error('Error deleting water log:', error);
             return;
         }
-        console.log('Deleted creatine log:', id);
-        refresh('creatine');
+        console.log('Deleted water log:', id);
+        refresh('water');
         handleClose();
     }
 
     const handleEdit = async (id: string) => {  
         const { error } = await supabase
-        .from('creatine_logs')
-        .update({ dose_grams: dose, form: form })
+        .from('water')
+        .update({ volume_floz: volume, drink_type: drinkType })
         .eq('id', id)
         if (error) {
-            console.error('Error updating creatine log:', error);
+            console.error('Error updating water log:', error);
             return;
         }
-        console.log('Updated creatine log:', id);
-        refresh('creatine');
+        console.log('Updated water log:', id);
+        refresh('water');
         handleClose();
     }
 
     useEffect(() => {
-        const fetchCreatineData = async () => { 
+        const fetchWaterData = async () => { 
             const { data, error } = await supabase
-            .from('creatine_logs')
+            .from('water_logs')
             .select('*')
-            .lt('taken_at', `${props.day} 23:59:59`)
-            .gt('taken_at', `${props.day} 00:00:00`)
+            .lt('logged_at', `${props.day} 23:59:59`)
+            .gt('logged_at', `${props.day} 00:00:00`)
             if (error) {
-                console.error('Error fetching creatine data:', error);
+                console.error('Error fetching water data:', error);
                 return;
             }
             setData(data);
         }
-        fetchCreatineData();
-    }, [props.day, refreshTrigger.creatine]);
+        fetchWaterData();
+    }, [props.day, refreshTrigger.water]);
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">
@@ -95,17 +95,17 @@ const CreatineDay = (props :any) => {
       </View>
       <View className="mb-[10] px-[15]">
         {data.length === 0 && (
-          <Text className="text-white">No creatine logs for this day...</Text>
+          <Text className="text-white">No water logs for this day...</Text>
         )}
         {data.map((log) => (
           <View
             key={log.id}
             className="mb-[10] px-[15] flex-row justify-between"
           >
-            <Text className="text-white">{`${log.dose_grams} grams`}</Text>
-            <Text className="text-white">{log.form}</Text>
+            <Text className="text-white">{`${log.volume_floz} fl oz`}</Text>
+            <Text className="text-white">{log.drink_type}</Text>
             <Text className="text-white">
-              {new Date(log.taken_at).toLocaleTimeString([], {
+              {new Date(log.logged_at).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -122,117 +122,118 @@ const CreatineDay = (props :any) => {
             >
               <ActionsheetBackdrop />
               <ActionsheetContent style={{ paddingBottom: 30 }}>
-                <ActionsheetDragIndicatorWrapper>
-                  <ActionsheetDragIndicator />
-                </ActionsheetDragIndicatorWrapper>
-                <View style={{width: "100%"}}>
-
-                    <ActionsheetSectionHeaderText className="text-xl">
-                    Edit Creatine Entry
-                    </ActionsheetSectionHeaderText>
-                    <ActionsheetItem
+                <View style={{ width: "100%" }}>
+                  <ActionsheetDragIndicatorWrapper>
+                    <ActionsheetDragIndicator />
+                  </ActionsheetDragIndicatorWrapper>
+                  <ActionsheetSectionHeaderText className="text-xl">
+                    Edit Water Entry
+                  </ActionsheetSectionHeaderText>
+                  <ActionsheetItem
                     onPress={() => {
-                        setShowModal(log.id);
-                        setEditId(log.id);
-                        setDose(log.dose_grams);
-                        setForm(log.form);
+                      setShowModal(log.id);
+                      setEditId(log.id);
+                      setVolume(log.volume_floz);
+                      setDrinkType(log.drink_type);
                     }}
-                    >
+                  >
                     <ActionsheetItemText className="text-lg">
-                        Edit
+                      Edit
                     </ActionsheetItemText>
                     <Modal
-                        isOpen={showModal === log.id}
-                        onClose={() => {
+                      isOpen={showModal === log.id}
+                      onClose={() => {
                         setShowModal(false);
-                        }}
-                        size="md"
+                      }}
+                      size="md"
                     >
-                        <ModalBackdrop />
-                        <ModalContent>
+                      <ModalBackdrop />
+                      <ModalContent>
                         <ModalHeader>
-                            <Heading size="md" className="text-typography-950">
-                            Edit Creatine Log
-                            </Heading>
-                            <ModalCloseButton>
+                          <Heading size="md" className="text-typography-950">
+                            Edit Water Log
+                          </Heading>
+                          <ModalCloseButton>
                             <Icon
-                                as={CloseIcon}
-                                size="md"
-                                className="stroke-background-400 group-[:hover]/modal-close-button:stroke-background-700 group-[:active]/modal-close-button:stroke-background-900 group-[:focus-visible]/modal-close-button:stroke-background-900"
+                              as={CloseIcon}
+                              size="md"
+                              className="stroke-background-400 group-[:hover]/modal-close-button:stroke-background-700 group-[:active]/modal-close-button:stroke-background-900 group-[:focus-visible]/modal-close-button:stroke-background-900"
                             />
-                            </ModalCloseButton>
+                          </ModalCloseButton>
                         </ModalHeader>
                         <ModalBody>
-                            <View>
-                            <Text>Dose</Text>
+                          <View>
+                            <Text>Volume</Text>
                             <Input className="mb-[10]">
-                                <InputField
-                                onChangeText={(e: string) => setDose(e)}
-                                >
-                                {dose.toString()}
-                                </InputField>
+                              <InputField
+                                onChangeText={(e: string) => setVolume(e)}
+                              >
+                                {volume.toString()}
+                              </InputField>
                             </Input>
                             <Text>Type</Text>
                             <Select
-                                onValueChange={(value: string) => setForm(value)}
+                              onValueChange={(value: string) =>
+                                setDrinkType(value)
+                              }
                             >
-                                <SelectTrigger
+                              <SelectTrigger
                                 className="justify-between"
                                 variant="outline"
                                 size="md"
-                                >
-                                <SelectInput placeholder={form} />
+                              >
+                                <SelectInput placeholder={drinkType} />
                                 <SelectIcon
-                                    className="mr-3"
-                                    as={ChevronDownIcon}
+                                  className="mr-3"
+                                  as={ChevronDownIcon}
                                 />
-                                </SelectTrigger>
-                                <SelectPortal>
+                              </SelectTrigger>
+                              <SelectPortal>
                                 <SelectBackdrop />
                                 <SelectContent>
-                                    <SelectDragIndicatorWrapper>
+                                  <SelectDragIndicatorWrapper>
                                     <SelectDragIndicator />
-                                    </SelectDragIndicatorWrapper>
-                                    <SelectItem
+                                  </SelectDragIndicatorWrapper>
+                                  <SelectItem
                                     label="Monohydrate"
                                     value="monohydrate"
-                                    />
-                                    <SelectItem label="HCL" value="hcl" />
-                                    <SelectItem
+                                  />
+                                  <SelectItem label="HCL" value="hcl" />
+                                  <SelectItem
                                     label="Micronized"
                                     value="micronized"
-                                    />
+                                  />
                                 </SelectContent>
-                                </SelectPortal>
+                              </SelectPortal>
                             </Select>
-                            </View>
+                          </View>
                         </ModalBody>
                         <ModalFooter>
-                            <Button
+                          <Button
                             variant="outline"
                             action="secondary"
                             onPress={() => {
-                                setShowModal(false);
+                              setShowModal(false);
                             }}
-                            >
+                          >
                             <ButtonText>Cancel</ButtonText>
-                            </Button>
-                            <Button
+                          </Button>
+                          <Button
                             onPress={() => {
-                                handleEdit(editId);
+                              handleEdit(editId);
                             }}
-                            >
+                          >
                             <ButtonText>Edit</ButtonText>
-                            </Button>
+                          </Button>
                         </ModalFooter>
-                        </ModalContent>
+                      </ModalContent>
                     </Modal>
-                    </ActionsheetItem>
-                    <ActionsheetItem onPress={() => handleDelete(log.id)}>
+                  </ActionsheetItem>
+                  <ActionsheetItem onPress={() => handleDelete(log.id)}>
                     <ActionsheetItemText className="text-lg">
-                        Delete
+                      Delete
                     </ActionsheetItemText>
-                    </ActionsheetItem>
+                  </ActionsheetItem>
                 </View>
               </ActionsheetContent>
             </Actionsheet>
@@ -243,4 +244,4 @@ const CreatineDay = (props :any) => {
   );
 }
 
-export default CreatineDay
+export default WaterDay
