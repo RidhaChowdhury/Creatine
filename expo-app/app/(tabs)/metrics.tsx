@@ -195,7 +195,7 @@ const Metrics = () => {
 
   return (
     <SafeAreaView className="bg-background-0 h-full">
-      <ScrollView className="px-[15]">
+      <ScrollView showsVerticalScrollIndicator={false} className="px-[15]">
         <VStack>
           <View className="flex-row items-center pt-[10]">
             <CalendarDays color={"white"} size={32} />

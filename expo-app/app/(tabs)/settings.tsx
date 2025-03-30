@@ -72,7 +72,7 @@ const Settings = () => {
 
     return (
     <SafeAreaView className='bg-background-0 h-full'>
-        <ScrollView className='px-[15]'>
+        <ScrollView showsVerticalScrollIndicator={false} className='px-[15]'>
             <View className="flex-row items-center">
                 <CircleUser color={'white'} size={48} />
                 <Text className='text-[20px] font-semibold pl-[7]'>{settings?.name}</Text>
