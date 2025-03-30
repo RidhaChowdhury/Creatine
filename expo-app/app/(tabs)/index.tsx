@@ -12,6 +12,9 @@ import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
 import { WaveBackground } from "@/components/WaveBackground";
 import ConfettiCannon from 'react-native-confetti-cannon';
+import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated'
+import { useFocusEffect } from "expo-router";
+
 
 const Today = () => {
   const [creatineAmount, setCreatineAmount] = useState(0);
@@ -25,6 +28,15 @@ const Today = () => {
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
+
+  const [animationKey, setAnimationKey] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setAnimationKey((prevKey) => prevKey + 1); // Change key on every focus
+    }, [])
+  );
+
 
   const fetchData = useCallback(async () => {
     const today = new Date().toISOString().split("T")[0];
@@ -79,6 +91,8 @@ const Today = () => {
     fetchData();
   }, [fetchData, refreshTrigger]);
 
+  
+
   return (
     <SafeAreaView className="bg-background-0 flex-1">
       <WaveBackground
@@ -115,22 +129,32 @@ const Today = () => {
 
       <HStack className="absolute bottom-4 right-4" space="xl">
         {/* Creatine Button (left) */}
-        <Button
-          size="lg"
-          className="bg-primary-0 rounded-full w-20 h-20"
-          onPress={() => setShowCreatineSheet(true)}
+        <Animated.View
+          key={animationKey}
+          entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}
         >
+          <Button
+            size="lg"
+            className="bg-primary-0 rounded-full w-20 h-20"
+            onPress={() => setShowCreatineSheet(true)}
+          >
           <CreatineScoopIcon color={"white"} size={50} />
-        </Button>
+          </Button>
+        </Animated.View>
 
         {/* Water Button (right) */}
-        <Button
-          size="lg"
-          className="bg-primary-0 rounded-full w-20 h-20"
-          onPress={() => setShowWaterSheet(true)}
+        <Animated.View
+          key={`water-${animationKey}`}
+          entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}
         >
-          <GlassWater color={"white"} size={32} />
-        </Button>
+          <Button
+            size="lg"
+            className="bg-primary-0 rounded-full w-20 h-20"
+            onPress={() => setShowWaterSheet(true)}
+          >
+            <GlassWater color={"white"} size={32} />
+          </Button>
+        </Animated.View>
       </HStack>
 
       {/* Water Logging Action Sheet */}
