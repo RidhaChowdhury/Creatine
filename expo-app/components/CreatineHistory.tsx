@@ -17,16 +17,26 @@ import CreatineDay from "@/components/CreatineDay";
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { calculateSaturation, CreatineLogEntry, calculateDaysTillSaturated } from "@/utils/creatineSaturation";
 
-type CommitData = {
+export type CommitData = {
   date: string;
   count: number;
   saturation?:number;
+  taken?:boolean;
 };
 
 type DistributionData = {
   form: string;
   count: number;
   color: string;
+};
+
+export const getCommitDataForDate = (
+  isoDate: string,
+  commitData: CommitData[],
+  fallback: CommitData = { date: "", count: 0, saturation: 0, taken: false }
+): CommitData => {
+  const targetDate = isoDate.split("T")[0];
+  return commitData.find((entry) => entry.date === targetDate) || fallback;
 };
 
 export const CreatineHistory = () => {
@@ -44,19 +54,6 @@ export const CreatineHistory = () => {
     
       const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
 
-      const getCommitDataForDate = (
-        isoDate: string,
-        commitData: CommitData[],
-        fallback: { count: number; saturation: number } = {
-          count: 0,
-          saturation: 0,
-        }
-      ) => {
-        const targetDate = isoDate.split("T")[0];
-        return (
-          commitData.find((entry) => entry.date === targetDate) || fallback
-        );
-      };
 
         useEffect(() => {
             const fetchCreatineData = async () => {
@@ -102,7 +99,8 @@ export const CreatineHistory = () => {
                 const heatmapData = entries.map((entry, i) => ({
                   date: entry.date,
                   count: turnIntoCount(saturations[i]), // Scale 0-1 to 0-4,
-                  saturation: saturations[i]
+                  saturation: saturations[i],
+                  taken: entries[i].doseGrams > 0
                 }));
                 console.log(heatmapData);
 
@@ -271,8 +269,10 @@ export const CreatineHistory = () => {
                   <CreatineDay
                     day={selectedDay}
                     dayData={getCommitDataForDate(selectedDay, commitData, {
+                      date: today,
                       count: 0,
                       saturation: 0,
+                      taken: false,
                     })}
                   />
                 </Box>
@@ -371,8 +371,10 @@ export const CreatineHistory = () => {
                       <Text className="text-2xl font-bold">
                         {Math.floor(
                           (getCommitDataForDate(today, commitData, {
+                            date: today,
                             count: 0,
                             saturation: 0,
+                            taken: false,
                           })?.saturation ?? 0) * 100
                         )}
                         %
@@ -387,10 +389,13 @@ export const CreatineHistory = () => {
                       <Text className="text-2xl font-bold">
                         {calculateDaysTillSaturated(
                           getCommitDataForDate(today, commitData, {
+                            date: today,
                             count: 0,
                             saturation: 0,
-                          })?.saturation ?? 0
-                        , 5)}{" "}
+                            taken: false,
+                          })?.saturation ?? 0,
+                          5
+                        )}
                         days
                       </Text>
                     </View>

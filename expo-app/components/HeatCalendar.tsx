@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
 } from "react-native";
+import { getCommitDataForDate, CommitData } from "./CreatineHistory";
 
 const DAY_LETTERS = ["S", "M", "T", "W", "R", "F", "S"];
 const { width } = Dimensions.get("window");
@@ -31,7 +32,25 @@ const parseDateString = (dateStr: string) => {
   return new Date(Date.UTC(year, month - 1, day));
 };
 
-const HeatCalendar = ({ data, endDate, numDays, onDayPress, colors }: Props) => {
+
+const HeatCalendar = ({
+  data,
+  endDate,
+  numDays,
+  onDayPress,
+  colors
+}: {
+  data: CommitData[];
+  endDate: string;
+  numDays: number;
+  onDayPress: (date: string) => void;
+  colors: string[];
+})  => {
+  
+  const setBorder = (date: string, data:CommitData[]) => {
+    return getCommitDataForDate(date, data).taken ? 2.5 : 0;
+  }
+
   // Parse end date in UTC to avoid timezone issues
   const end = parseDateString(endDate);
   const start = new Date(end);
@@ -83,12 +102,14 @@ const HeatCalendar = ({ data, endDate, numDays, onDayPress, colors }: Props) => 
                   {
                     backgroundColor: getColor(count),
                     opacity: isFuture ? 0.5 : 1,
+                    borderColor: "green",
+                    borderWidth: setBorder(date, data)
                   },
                 ]}
                 disabled={isFuture}
               >
                 <Text style={styles.dayNumber}>{dateObj.getUTCDate()}</Text>
-                <Text style={styles.dayLetter}>{DAY_LETTERS[dayOfWeek]}</Text>
+                {/* <Text style={styles.dayLetter}>{DAY_LETTERS[dayOfWeek]}</Text> */}
               </TouchableOpacity>
             );
           })}
