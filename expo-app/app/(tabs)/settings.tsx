@@ -247,7 +247,8 @@ const Settings = () => {
 
             
 
-            <Button className='mt-[15] mb-[15]' onPress={() => supabase.auth.signOut()}>
+            <Button className='mt-[15] mb-[15]' onPress={() => {supabase.auth.signOut()
+                console.log("SINGING OUT")}}>
                 <ButtonText>Log Out</ButtonText>
             </Button>
         </ScrollView>
