@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "expo-app",
-    "slug": "expo-app",
+    "name": "monohydrated",
+    "slug": "monohydrated",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.samlau25.expo-app"
+      "bundleIdentifier": "com.samlau25.monohydrated"
     },
     "android": {
       "adaptiveIcon": {
@@ -37,6 +37,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d59c10dc-4f27-4d5a-a2f2-0ee42bdc4d86"
+      }
     }
   }
 }
