@@ -10,5 +10,4 @@ export type UserSettings = {
     water_goal: number;
     creatine_goal: number;
     users?: { email: string };
-  };
-  
+};
