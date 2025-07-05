@@ -2,7 +2,6 @@ import { View, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native'
 import React, { useContext } from 'react'
 import { Button, ButtonText } from "@/components/ui/button"
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/authContext'
 import { Text } from '@/components/ui/text/'
 import {CircleUser, Pencil, Check, X, Crown} from 'lucide-react-native'
 import { UserSettings } from '@/types'
@@ -12,9 +11,12 @@ import { ChevronDownIcon } from '@/components/ui/icon'
 import { router } from 'expo-router'
 import { Box } from '@/components/ui/box'
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { selectUser, setUser } from '@/features/auth/authSlice'
 
 const Settings = () => {
-    const { user, setUser } = useAuth()
+    const dispatch = useAppDispatch();
+    const user = useAppSelector(selectUser)
     const [settings, setSettings] = React.useState<UserSettings | null>(null);
     const [formState, setFormState] = React.useState({})
     const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
@@ -402,8 +404,7 @@ const Settings = () => {
             className="mt-[15] mb-[25] h-[45] rounded-[15px]"
             onPress={() => {
               supabase.auth.signOut();
-              // console.log("SINGING OUT")
-              setUser(null);
+              dispatch(setUser(null));
               router.replace("/(auth)/login");
             }}
           >

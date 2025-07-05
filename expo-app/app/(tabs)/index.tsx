@@ -7,7 +7,6 @@ import CreatineScoopIcon from "@/components/CreatineScoop";
 import { supabase } from "@/lib/supabase";
 import { WaterLogActionsheet } from "@/components/WaterLogActionSheet";
 import { CreatineLogActionsheet } from "@/components/CreatineLogActionSheet";
-import { useAuth } from "@/context/authContext"; // Custom hook to get the user ID
 import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
 import { WaveBackground } from "@/components/WaveBackground";
@@ -15,7 +14,8 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import { useFocusEffect } from "expo-router";
 import * as Haptics from 'expo-haptics';
-
+import { selectUser } from "@/features/auth/authSlice";
+import { useAppSelector } from "@/store/hooks";
 
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 
@@ -31,8 +31,7 @@ const Today = () => {
 
   // const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
-  const { user } = useAuth();
-
+  const user = useAppSelector(selectUser);
   const [animationKey, setAnimationKey] = useState(0);
 
   useFocusEffect(

@@ -3,7 +3,6 @@ import React, { useEffect, useContext } from 'react'
 import { Text } from './ui/text'
 import { Box } from "@/components/ui/box";
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/context/authContext';
 import {Ellipsis} from 'lucide-react-native'
 import {
     Actionsheet,
@@ -31,9 +30,11 @@ import { Input, InputField } from './ui/input';
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { ActionsheetSectionHeaderText } from './ui/select/select-actionsheet';
+import { selectUser } from "@/features/auth/authSlice";
+import { useAppSelector } from "@/store/hooks";
 
 const CreatineDay = (props :any) => {
-    const { user } = useAuth();
+    const user = useAppSelector(selectUser);
     const [data, setData] =  React.useState<any[]>([]);
     const [showActionsheet, setShowActionsheet] = React.useState(false)
     const handleClose = () => setShowActionsheet(false)
