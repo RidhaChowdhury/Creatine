@@ -56,6 +56,7 @@ const Settings = () => {
     };
 
     React.useEffect(() => {
+      if ( !user ) return;
         const fetchSettings = async () => {
             const { data, error } = await supabase
                 .from('user_settings')

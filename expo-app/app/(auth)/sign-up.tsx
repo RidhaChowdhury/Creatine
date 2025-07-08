@@ -35,7 +35,9 @@ export default function SignUP() {
       password: password,
     });
 
-    if (error) Alert.alert("Sign Up Error", error.message);
+    if (error) {
+      Alert.alert("Sign Up Error", error.message);
+    }
     setLoading(false);
   }
 

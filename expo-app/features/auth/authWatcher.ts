@@ -6,48 +6,52 @@ import { setUser, logout } from "./authSlice"
 
 export const AuthWatcher = () => {
     const dispatch = useAppDispatch();
-
-    const checkUserSettings = async (userId: string) => {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
     
-        if (error) {
-          return false;
-        }
-    
-        return !!data;
-      };
-    
-      useEffect(() => {
-        const loadSession = async () => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            dispatch(setUser(session.user));
-            const hasSettings = await checkUserSettings(session.user.id);
-            router.replace(hasSettings ? "/(tabs)" : "/(auth)/onboarding");
-          }
-        };
-    
-        loadSession();
-    
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-          if (session?.user) {
-            dispatch(setUser(session.user));
-            const hasSettings = await checkUserSettings(session.user.id);
-            router.replace(hasSettings ? "/(tabs)" : "/(auth)/onboarding");
-          } else {
-            dispatch(logout());
-            router.replace("/(auth)/login");
-          }
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: {session}}) => {
+            if (session?.user) {
+                dispatch(setUser(session.user));
+                router.replace("/(tabs)");
+            } else {
+                router.replace("/(auth)/login");
+            }
         });
+              
+        supabase.auth.onAuthStateChange((_event, session) => {
+            const hasSettings = async (userId: string) => {
+                const { data, error } = await supabase
+                    .from('user_settings')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+
+                if (error) {
+                    console.error(error);
+                    return false;
+                }
+
+                return !!data;
+            }
+
+            const handleAuthChange = async () => {
+                if (session?.user) {
+                    const onboarded = await hasSettings(session.user.id);
+                    console.log(onboarded);
+                    dispatch(setUser(session.user));
+                    if (onboarded) {
+                        router.replace("/(tabs)");
+                    } else {
+                        router.replace('/(auth)/onboarding');
+                    }
+                } else {
+                    dispatch(logout());
+                    router.replace("/(auth)/login");
+                }
+            }
+
+            handleAuthChange();
+        });
+    }, []);
     
-        return () => {
-          authListener.subscription.unsubscribe();
-        };
-      }, [dispatch]);
-    
-      return null;
+    return null;
 }
