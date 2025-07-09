@@ -405,8 +405,6 @@ const Settings = () => {
             className="mt-[15] mb-[25] h-[45] rounded-[15px]"
             onPress={() => {
               supabase.auth.signOut();
-              dispatch(setUser(null));
-              router.replace("/(auth)/login");
             }}
           >
             <ButtonText className="text-[20px] font-semibold">
