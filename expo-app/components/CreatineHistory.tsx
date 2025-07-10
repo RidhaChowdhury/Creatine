@@ -15,29 +15,7 @@ import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
-import { calculateSaturation, CreatineLogEntry, calculateDaysTillSaturated } from "@/utils/creatineSaturation";
-
-export type CommitData = {
-  date: string;
-  count: number;
-  saturation?:number;
-  taken?:boolean;
-};
-
-type DistributionData = {
-  form: string;
-  count: number;
-  color: string;
-};
-
-export const getCommitDataForDate = (
-  isoDate: string,
-  commitData: CommitData[],
-  fallback: CommitData = { date: "", count: 0, saturation: 0, taken: false }
-): CommitData => {
-  const targetDate = isoDate.split("T")[0];
-  return commitData.find((entry) => entry.date === targetDate) || fallback;
-};
+import { calculateSaturation, CreatineLogEntry, calculateDaysTillSaturated, CommitData, DistributionData, getCommitDataForDate } from "@/utils/creatineSaturation";
 
 export const CreatineHistory = () => {
       const [commitData, setCommitData] = useState<CommitData[]>([]);

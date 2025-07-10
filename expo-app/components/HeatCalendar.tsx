@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Dimensions,
 } from "react-native";
-import { getCommitDataForDate, CommitData } from "./CreatineHistory";
+import { getCommitDataForDate, CommitData } from "@/utils/creatineSaturation";
 
 const DAY_LETTERS = ["S", "M", "T", "W", "R", "F", "S"];
 const { width } = Dimensions.get("window");
