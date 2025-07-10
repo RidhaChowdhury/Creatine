@@ -15,14 +15,15 @@ import { Heading } from '@/components/ui/heading'
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/authContext'
 import { router } from 'expo-router'
+import { selectUser } from "@/features/auth/authSlice";
+import { useAppSelector } from "@/store/hooks";
 
 const Onboarding = () => {
   const [showAlertDialog, setShowAlertDialog] = React.useState(false)
   const handleClose = () => setShowAlertDialog(false)
 
-  const { user } = useAuth()
+  const user = useAppSelector(selectUser);
 
   const [formData, setFormData] = React.useState({
     name: '',
