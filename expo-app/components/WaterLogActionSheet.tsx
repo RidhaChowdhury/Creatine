@@ -27,55 +27,22 @@ import {
 import { Text } from "@/components/ui/text";
 import { ChevronDownIcon } from "@/components/ui/icon";
 import { supabase } from "@/lib/supabase";
+import { useAppDispatch } from "@/store/hooks";
+import { addWaterLog } from "@/features/water/waterSlice";
 
 const DRINK_OPTIONS = ["Water", "Juice", "Soda", "Coffee", "Tea"] as const;
 type DrinkType = (typeof DRINK_OPTIONS)[number];
 
-  const logWaterIntake = async (amount: string, drinkType: DrinkType) => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Convert amount to number and validate
-      const volume = parseInt(amount);
-      if (isNaN(volume)) {
-        throw new Error('Invalid amount');
-      }
-
-      // Insert into water_logs table
-      const { data, error } = await supabase
-        .from('water_logs')
-        .insert([{
-          user_id: user.id,
-          volume_floz: volume,
-          drink_type: drinkType.toLowerCase(),
-        }])
-        .select(); // Returns the inserted record
-
-      if (error) throw error;
-      return data;
-      
-    } catch (error) {
-      console.error('Error logging water intake:', error);
-      throw error;
-    }
-  };
-
 interface WaterLogActionsheetProps {
   showActionsheet: boolean;
   handleClose: () => void;
-  onLog: (amount: string, drinkType: DrinkType) => void;
 }
 
 export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
   showActionsheet,
   handleClose,
-  onLog,
 }) => {
+  const dispatch = useAppDispatch();
   const [amount, setAmount] = useState<string>("");
   const [drinkType, setDrinkType] = useState<DrinkType>("Water");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -172,8 +139,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
               className={`w-full bg-primary-0 ${!amount ? "opacity-70" : ""}`}
               onPress={async () => {
                 if (amount) {
-                  await logWaterIntake(amount, drinkType);
-                  onLog(amount, drinkType);
+                  dispatch(addWaterLog({amount: Number(amount)}))
                   Keyboard.dismiss();
                   handleClose();
                 }

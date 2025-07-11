@@ -16,12 +16,13 @@ import { useFocusEffect } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { selectUser } from "@/features/auth/authSlice";
 import { useAppSelector } from "@/store/hooks";
+import { selectDailyWaterTotal, addWaterLog } from "@/features/water/waterSlice";
 
 import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 
 const Today = () => {
+  const waterAmount = useAppSelector(selectDailyWaterTotal);
   const [creatineAmount, setCreatineAmount] = useState(0);
-  const [waterAmount, setWaterAmount] = useState(0);
   const [dailyGoal, setDailyGoal] = useState({
     creatine: 5.0,
     water: 150,
@@ -29,7 +30,6 @@ const Today = () => {
   const [showWaterSheet, setShowWaterSheet] = useState(false);
   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
 
-  // const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
   const user = useAppSelector(selectUser);
   const [animationKey, setAnimationKey] = useState(0);
@@ -53,14 +53,6 @@ const Today = () => {
       .gte("taken_at", `${today}T00:00:00`)
       .lte("taken_at", `${today}T23:59:59`);
 
-    // Fetch water logs
-    const { data: waterData } = await supabase
-      .from("water_logs")
-      .select("volume_floz")
-      .eq("user_id", user.id)
-      .gte("logged_at", `${today}T00:00:00`)
-      .lte("logged_at", `${today}T23:59:59`);
-
     const { data: userSettings } = await supabase
       .from("user_settings")
       .select("creatine_goal, water_goal")
@@ -77,10 +69,6 @@ const Today = () => {
     if (creatineData) {
       const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
       setCreatineAmount(Number(total.toFixed(1)));
-    }
-    if (waterData) {
-      const total = waterData.reduce((sum, log) => sum + log.volume_floz, 0);
-      setWaterAmount(total);
     }
   }, []);
 
@@ -171,9 +159,6 @@ const Today = () => {
       <WaterLogActionsheet
         showActionsheet={showWaterSheet}
         handleClose={() => setShowWaterSheet(false)}
-        onLog={() => {
-          refresh('water');
-        }}
       />
 
       <CreatineLogActionsheet

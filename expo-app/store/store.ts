@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/authSlice' 
+import waterReducer from '../features/water/waterSlice'
 
 export const store = configureStore({
   reducer: {
     auth: authReducer, 
+    water: waterReducer,
   },
 });
 
