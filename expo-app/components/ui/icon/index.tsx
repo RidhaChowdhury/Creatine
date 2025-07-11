@@ -444,14 +444,14 @@ const ChevronDownIcon = createIcon({
   Root: Svg,
   viewBox: '0 0 24 24',
   path: (
-    <>
-      <Path
-        d="M6 9L12 15L18 9"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </>
+    <Path
+      d="M6 9L12 15L18 9"
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   ),
 });
 
