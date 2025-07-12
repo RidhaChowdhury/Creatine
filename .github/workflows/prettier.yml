@@ -2,17 +2,22 @@ name: autofix.ci
 on:
   pull_request:
   push:
-permissions: {}
+permissions:
+  contents: write  # Required for autofix to push changes
 jobs:
   prettier:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: |
+
+      - name: Install dependencies and run Prettier
+        run: |
           cd expo-app
-          yarn
-          yarn prettier . --write
+          npm ci
+          npx prettier . --write
+
       - uses: autofix-ci/action@v1
         with:
           commit-message: "Apply Prettier format"
+          allow-dotgithub: true  # Allow modifying workflow files
