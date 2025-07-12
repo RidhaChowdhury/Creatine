@@ -20,4 +20,3 @@ jobs:
       - uses: autofix-ci/action@v1
         with:
           commit-message: "Apply Prettier format"
-          allow-dotgithub: true  # Allow modifying workflow files
