@@ -14,7 +14,6 @@ import { supabase } from "@/lib/supabase";
 import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { calculateSaturation, CreatineLogEntry, calculateDaysTillSaturated } from "@/utils/creatineSaturation";
 
 export type CommitData = {
@@ -52,9 +51,6 @@ export const CreatineHistory = () => {
       const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split("T")[0]);
       const today = new Date().toISOString().split("T")[0] ? new Date().toISOString().split("T")[0] : '2025-03-30';
     
-      const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
-
-
         useEffect(() => {
             const fetchCreatineData = async () => {
               try {
@@ -242,7 +238,7 @@ export const CreatineHistory = () => {
 
           fetchAllData();
 
-        }, [daysToShow, refreshTrigger.creatine]);
+        }, [daysToShow]);
 
         function generateRandomColor(): string {
           // Generate random values for red and green channels between 0 and 127 (0x00 to 0x7F)

@@ -27,57 +27,24 @@ import {
 import { Text } from "@/components/ui/text";
 import { ChevronDownIcon } from "@/components/ui/icon";
 import { supabase } from "@/lib/supabase";
+import { useAppDispatch } from "@/store/hooks";
+import { addDrinkLog } from "@/features/intake/intakeSlice"
+import { DRINK_TYPES } from "@/lib/constants";
 
-const DRINK_OPTIONS = ["Water", "Juice", "Soda", "Coffee", "Tea"] as const;
-type DrinkType = (typeof DRINK_OPTIONS)[number];
-
-  const logWaterIntake = async (amount: string, drinkType: DrinkType) => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Convert amount to number and validate
-      const volume = parseInt(amount);
-      if (isNaN(volume)) {
-        throw new Error('Invalid amount');
-      }
-
-      // Insert into water_logs table
-      const { data, error } = await supabase
-        .from('water_logs')
-        .insert([{
-          user_id: user.id,
-          volume_floz: volume,
-          drink_type: drinkType.toLowerCase(),
-        }])
-        .select(); // Returns the inserted record
-
-      if (error) throw error;
-      return data;
-      
-    } catch (error) {
-      console.error('Error logging water intake:', error);
-      throw error;
-    }
-  };
+type DrinkType = (typeof DRINK_TYPES)[number];
 
 interface WaterLogActionsheetProps {
   showActionsheet: boolean;
   handleClose: () => void;
-  onLog: (amount: string, drinkType: DrinkType) => void;
 }
 
 export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
   showActionsheet,
   handleClose,
-  onLog,
 }) => {
+  const dispatch = useAppDispatch();
   const [amount, setAmount] = useState<string>("");
-  const [drinkType, setDrinkType] = useState<DrinkType>("Water");
+  const [drinkType, setDrinkType] = useState<DrinkType>("water");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -151,10 +118,10 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                       <SelectDragIndicatorWrapper>
                         <SelectDragIndicator />
                       </SelectDragIndicatorWrapper>
-                      {DRINK_OPTIONS.map((option) => (
+                      {DRINK_TYPES.map((option) => (
                         <SelectItem
                           key={option}
-                          label={option}
+                          label={option.charAt(0).toUpperCase() + option.slice(1)}
                           value={option}
                           className="rounded-xl"
                         />
@@ -172,8 +139,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
               className={`w-full bg-primary-0 ${!amount ? "opacity-70" : ""}`}
               onPress={async () => {
                 if (amount) {
-                  await logWaterIntake(amount, drinkType);
-                  onLog(amount, drinkType);
+                  dispatch(addDrinkLog({amount: Number(amount), consumable: drinkType}))
                   Keyboard.dismiss();
                   handleClose();
                 }

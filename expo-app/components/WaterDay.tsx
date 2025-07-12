@@ -28,7 +28,6 @@ import { Icon, CloseIcon, ChevronDownIcon } from './ui/icon';
 import { Button, ButtonText } from './ui/button';
 import { Input, InputField } from './ui/input';
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { ActionsheetSectionHeaderText } from './ui/select/select-actionsheet';
 import { selectUser } from "@/features/auth/authSlice";
 import { useAppSelector } from "@/store/hooks";
@@ -42,8 +41,6 @@ const WaterDay = (props :any) => {
     const [editId, setEditId] = React.useState('')
     const [volume, setVolume] = React.useState('')
     const [drinkType, setDrinkType] = React.useState('')
-    const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
-    
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase
@@ -55,7 +52,6 @@ const WaterDay = (props :any) => {
             return;
         }
         console.log('Deleted water log:', id);
-        refresh('water');
         handleClose();
     }
 
@@ -69,7 +65,6 @@ const WaterDay = (props :any) => {
             return;
         }
         console.log('Updated water log:', id);
-        refresh('water');
         handleClose();
     }
 
@@ -87,7 +82,7 @@ const WaterDay = (props :any) => {
             setData(data);
         }
         fetchWaterData();
-    }, [props.day, refreshTrigger.water]);
+    }, [props.day]);
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">

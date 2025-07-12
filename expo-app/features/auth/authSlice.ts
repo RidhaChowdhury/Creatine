@@ -1,3 +1,4 @@
+import { RootState } from '@/store/store';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '@supabase/supabase-js';
 
@@ -35,8 +36,8 @@ const authSlice = createSlice({
 });
 
 export const { setUser, logout, setError, setLoading } = authSlice.actions;
-export const selectUser = (state: {auth: AuthState}) => state.auth.user;
-export const selectIsLoading = (state: {auth: AuthState}) => state.auth.isLoading;
-export const selectError = (state: {auth: AuthState}) => state.auth.error;
+export const selectUser = (state: RootState) => state.auth.user;
+export const selectIsLoading = (state: RootState) => state.auth.isLoading;
+export const selectError = (state: RootState) => state.auth.error;
 
 export default authSlice.reducer;

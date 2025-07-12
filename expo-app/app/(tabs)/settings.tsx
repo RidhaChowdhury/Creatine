@@ -10,7 +10,6 @@ import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragI
 import { ChevronDownIcon } from '@/components/ui/icon'
 import { router } from 'expo-router'
 import { Box } from '@/components/ui/box'
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { selectUser, setUser } from '@/features/auth/authSlice'
 
@@ -20,7 +19,6 @@ const Settings = () => {
     const [settings, setSettings] = React.useState<UserSettings | null>(null);
     const [formState, setFormState] = React.useState({})
     const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
-    const { refresh, refreshTrigger } = useContext<RefreshContextType>(RefreshContext);
     
     const toggleEdit = (section: string) => {
         setActiveEditSection(prev => (prev === section ? null : section));
@@ -51,8 +49,6 @@ const Settings = () => {
 
         setSettings({ ...settings, ...formState })
         toggleEdit(activeEditSection!)
-        refresh('creatine');
-        refresh('water');
     };
 
     React.useEffect(() => {

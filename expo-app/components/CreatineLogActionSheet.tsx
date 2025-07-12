@@ -26,51 +26,23 @@ import {
 } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { ChevronDownIcon } from "@/components/ui/icon";
-import { supabase } from "@/lib/supabase";
+import { useAppDispatch } from "@/store/hooks";
+import { addCreatineLog } from "@/features/intake/intakeSlice";
 
 const CREATINE_FORMS = ["Monohydrate", "HCL", "Micronized"] as const;
 type CreatineForm = (typeof CREATINE_FORMS)[number];
 
-const logCreatineIntake = async (grams: string, form: CreatineForm) => {
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-
-    const gramsValue = parseFloat(grams);
-    if (isNaN(gramsValue)) throw new Error("Invalid amount");
-
-    const { data, error } = await supabase
-      .from("creatine_logs")
-      .insert([
-        {
-          user_id: user.id,
-          dose_grams: gramsValue,
-          form: form.toLowerCase(),
-        },
-      ])
-      .select();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error logging creatine:", error);
-    throw error;
-  }
-};
-
 interface CreatineLogActionsheetProps {
   showActionsheet: boolean;
   handleClose: () => void;
-  onLog: (grams: string, form: CreatineForm) => void;
 }
 
 export const CreatineLogActionsheet: React.FC<CreatineLogActionsheetProps> = ({
   showActionsheet,
   handleClose,
-  onLog,
 }) => {
+  const dispatch = useAppDispatch();
+
   const [grams, setGrams] = useState<string>("");
   const [form, setForm] = useState<CreatineForm>("Monohydrate");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -165,8 +137,7 @@ export const CreatineLogActionsheet: React.FC<CreatineLogActionsheetProps> = ({
               className={`w-full bg-primary-0 ${!grams ? "opacity-70" : ""}`}
               onPress={async () => {
                 if (grams) {
-                    await logCreatineIntake(grams, form);
-                    onLog(grams, form); // Call the onLog callback with the grams and form
+                    dispatch(addCreatineLog({amount: Number(grams)}));
                     Keyboard.dismiss();
                     handleClose(); // Close the action sheet after logging
                 }
