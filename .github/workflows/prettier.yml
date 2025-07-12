@@ -11,7 +11,7 @@ jobs:
       - uses: actions/setup-node@v4
       - run: |
           cd expo-app
-          npm ci
+          npm
           npx prettier . --write
       - uses: autofix-ci/action@v1
         with:
