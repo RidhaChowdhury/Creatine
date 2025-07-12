@@ -11,8 +11,8 @@ jobs:
       - uses: actions/setup-node@v4
       - run: |
           cd expo-app
-          npx
-          npx prettier --write .
+          yarn
+          yarn prettier . --write
       - uses: autofix-ci/action@v1
         with:
           commit-message: "Apply Prettier format"
