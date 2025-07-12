@@ -7,7 +7,6 @@ import CreatineScoopIcon from "@/components/CreatineScoop";
 import { supabase } from "@/lib/supabase";
 import { WaterLogActionsheet } from "@/components/WaterLogActionSheet";
 import { CreatineLogActionsheet } from "@/components/CreatineLogActionSheet";
-import { useAuth } from "@/context/authContext"; // Custom hook to get the user ID
 import { HStack } from "@/components/ui/hstack";
 import { Button } from "@/components/ui/button";
 import { WaveBackground } from "@/components/WaveBackground";
@@ -15,13 +14,13 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import { useFocusEffect } from "expo-router";
 import * as Haptics from 'expo-haptics';
-
-
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
+import { selectUser } from "@/features/auth/authSlice";
+import { useAppSelector } from "@/store/hooks";
+import { selectDailyWaterTotal, selectDailyCreatineTotal } from "@/features/intake/intakeSlice";
 
 const Today = () => {
-  const [creatineAmount, setCreatineAmount] = useState(0);
-  const [waterAmount, setWaterAmount] = useState(0);
+  const waterAmount = useAppSelector(selectDailyWaterTotal);
+  const creatineAmount = useAppSelector(selectDailyCreatineTotal)
   const [dailyGoal, setDailyGoal] = useState({
     creatine: 5.0,
     water: 150,
@@ -29,10 +28,7 @@ const Today = () => {
   const [showWaterSheet, setShowWaterSheet] = useState(false);
   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
 
-  // const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
-  const { user } = useAuth();
-
+  const user = useAppSelector(selectUser);
   const [animationKey, setAnimationKey] = useState(0);
 
   useFocusEffect(
@@ -45,22 +41,6 @@ const Today = () => {
   const fetchData = useCallback(async () => {
     const today = new Date().toISOString().split("T")[0];
     if (!user?.id) return;
-
-    // Fetch creatine logs
-    const { data: creatineData } = await supabase
-      .from("creatine_logs")
-      .select("dose_grams")
-      .eq("user_id", user.id)
-      .gte("taken_at", `${today}T00:00:00`)
-      .lte("taken_at", `${today}T23:59:59`);
-
-    // Fetch water logs
-    const { data: waterData } = await supabase
-      .from("water_logs")
-      .select("volume_floz")
-      .eq("user_id", user.id)
-      .gte("logged_at", `${today}T00:00:00`)
-      .lte("logged_at", `${today}T23:59:59`);
 
     const { data: userSettings } = await supabase
       .from("user_settings")
@@ -75,20 +55,12 @@ const Today = () => {
         water: water_goal,
       });
     }
-    if (creatineData) {
-      const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
-      setCreatineAmount(Number(total.toFixed(1)));
-    }
-    if (waterData) {
-      const total = waterData.reduce((sum, log) => sum + log.volume_floz, 0);
-      setWaterAmount(total);
-    }
   }, []);
 
   // Fetch all initial data
   useEffect(() => {
     fetchData();
-  }, [fetchData, refreshTrigger]);
+  }, [fetchData]);
 
 
   useEffect(() => {
@@ -172,17 +144,11 @@ const Today = () => {
       <WaterLogActionsheet
         showActionsheet={showWaterSheet}
         handleClose={() => setShowWaterSheet(false)}
-        onLog={() => {
-          refresh('water');
-        }}
       />
 
       <CreatineLogActionsheet
         showActionsheet={showCreatineSheet}
         handleClose={() => setShowCreatineSheet(false)}
-        onLog={() => {
-          refresh('creatine');
-        }}
       />
     </SafeAreaView>
   );
