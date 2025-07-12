@@ -28,7 +28,6 @@ import { Icon, CloseIcon, ChevronDownIcon } from './ui/icon';
 import { Button, ButtonText } from './ui/button';
 import { Input, InputField } from './ui/input';
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { ActionsheetSectionHeaderText } from './ui/select/select-actionsheet';
 import { selectUser } from "@/features/auth/authSlice";
 import { useAppSelector } from "@/store/hooks";
@@ -42,7 +41,6 @@ const CreatineDay = (props :any) => {
     const [editId, setEditId] = React.useState('')
     const [dose, setDose] = React.useState('')
     const [form, setForm] = React.useState('')
-    const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
     
 
     const handleDelete = async (id: string) => {
@@ -55,7 +53,6 @@ const CreatineDay = (props :any) => {
             return;
         }
         console.log('Deleted creatine log:', id);
-        refresh('creatine');
         handleClose();
     }
 
@@ -69,7 +66,6 @@ const CreatineDay = (props :any) => {
             return;
         }
         console.log('Updated creatine log:', id);
-        refresh('creatine');
         handleClose();
     }
 
@@ -87,7 +83,7 @@ const CreatineDay = (props :any) => {
             setData(data);
         }
         fetchCreatineData();
-    }, [props.day, refreshTrigger.creatine]);
+    }, [props.day]);
   return (
     <View>
       <View className="flex-row items-center justify-between p-4">

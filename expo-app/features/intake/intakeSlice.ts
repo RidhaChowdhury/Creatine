@@ -1,0 +1,444 @@
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { supabase } from "@/lib/supabase";
+import { RootState } from "@/store/store";
+import { DRINK_TYPES } from "@/lib/constants";
+
+type DrinkType = typeof DRINK_TYPES[number];
+type ConsumableType = DrinkType | 'creatine'
+
+function isDrinkType(value: ConsumableType): value is DrinkType {
+    return DRINK_TYPES.includes(value as DrinkType);
+}
+
+type IntakeLog = {
+  id: string;
+  user_id: string;
+  amount: number;
+  unit: string;
+  consumable: ConsumableType;
+  consumed_at: string;
+  logged_at: string;
+}
+
+type IntakeState = {
+  drinkLogs: IntakeLog[];
+  creatineLogs: IntakeLog[];
+  dailyWaterTotal: number;
+  dailyDrinkTotal: number;
+  dailyCreatineTotal: number;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: IntakeState = {
+  drinkLogs: [],
+  creatineLogs: [],
+  dailyWaterTotal: 0,
+  dailyDrinkTotal: 0,
+  dailyCreatineTotal: 0,
+  status: 'idle',
+  error: null,
+}
+
+const formatDate = (date: Date) => {
+	// format to only yy-mm-dd
+	const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+	return `${yyyy}-${mm}-${dd}`
+}
+
+const formatDateTime = (date: Date) => {
+	const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+}
+
+const getTodayDate = () => {
+    const today = new Date();
+		return formatDate(today);
+};
+
+const get30DaysAgo = (): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - 30);
+
+  return formatDateTime(date);
+};
+
+/* !TODO: Once we have settingsSlice and can change units, it's imperative we make sure we are accounting for the unit of each log 
+when adding a total */
+const calculateDailyTotal = (logs: IntakeLog[]): number => {
+    const today = getTodayDate();
+    return logs
+      .filter(log => log.consumed_at.startsWith(today))
+      .reduce((sum, log) => sum + Number(log.amount), 0);
+};
+
+const calculateDailyWaterTotal = (logs: IntakeLog[]): number => {
+    const today = getTodayDate();
+    return logs
+      .filter(log => log.consumed_at.startsWith(today) && log.consumable === 'water')
+      .reduce((sum, log) => sum + Number(log.amount), 0);
+};
+
+// Thunk to fetch drink logs (last 30 days)
+export const fetchDrinkLogs = createAsyncThunk<IntakeLog[], void, { state: RootState }>(
+  'intake/fetchDrinkLogs',
+  async (_, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+      
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      const thirtyDaysAgo = get30DaysAgo();
+      
+      const { data, error } = await supabase
+          .from('intake_log')
+          .select('*')
+          .eq('user_id', userId)
+          .in('consumable', DRINK_TYPES)
+          .gte('consumed_at', thirtyDaysAgo)
+          .order('consumed_at', { ascending: false });
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return data || [];
+  }
+);
+
+// Thunk to fetch creatine logs (last 30 days)
+export const fetchCreatineLogs = createAsyncThunk<IntakeLog[], void, { state: RootState }>(
+  'intake/fetchCreatineLogs',
+  async (_, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+      
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      const thirtyDaysAgo = get30DaysAgo();
+      
+      const { data, error } = await supabase
+          .from('intake_log')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('consumable', 'creatine')
+          .gte('consumed_at', thirtyDaysAgo)
+          .order('consumed_at', { ascending: false });
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return data || [];
+  }
+);
+
+// Thunk to add drink log
+export const addDrinkLog = createAsyncThunk<IntakeLog, { amount: number; consumable: DrinkType; unit?: string; consumed_at?: string }, { state: RootState }>(
+  'intake/addDrinkLog',
+  async ({ amount, consumable, unit = 'oz', consumed_at }, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      const { data, error } = await supabase
+          .from('intake_log')
+          .insert([{
+              user_id: userId,
+              amount,
+              unit,
+              consumable,
+              consumed_at: consumed_at || formatDateTime(new Date()),
+          }])
+          .select()
+          .single();
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return data;
+  }
+);
+
+// Thunk to add creatine log
+export const addCreatineLog = createAsyncThunk<IntakeLog, { amount: number; unit?: string; consumed_at?: string }, { state: RootState }>(
+  'intake/addCreatineLog',
+  async ({ amount, unit = 'g', consumed_at }, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      const { data, error } = await supabase
+          .from('intake_log')
+          .insert([{
+              user_id: userId,
+              amount,
+              unit,
+              consumable: 'creatine',
+              consumed_at: consumed_at || formatDateTime(new Date()),
+          }])
+          .select()
+          .single();
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return data;
+  }
+);
+
+// Thunk to update intake log (works for both drinks and creatine)
+export const updateIntakeLog = createAsyncThunk<IntakeLog, { id: string; amount: number; unit?: string }, { state: RootState }>(
+  'intake/updateIntakeLog',
+  async ({ id, amount, unit }, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+      
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      const updateData: any = { amount };
+      if (unit) {
+          updateData.unit = unit;
+      }
+
+      const { data, error } = await supabase
+          .from('intake_log')
+          .update(updateData)
+          .eq('id', id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return data;
+  }
+);
+
+// Thunk to delete intake log (works for both drinks and creatine)
+export const deleteIntakeLog = createAsyncThunk<{ id: string; consumable: ConsumableType }, string, { state: RootState }>(
+  'intake/deleteIntakeLog',
+  async (id, thunkAPI) => {
+      const state = thunkAPI.getState();
+      const userId = state.auth.user?.id;
+      
+      if (!userId) {
+          throw new Error('No user ID found');
+      }
+
+      // First get the log to know what type it is
+      const { data: logData, error: fetchError } = await supabase
+          .from('intake_log')
+          .select('consumable')
+          .eq('id', id)
+          .eq('user_id', userId)
+          .single();
+
+      if (fetchError) {
+          throw new Error(fetchError.message);
+      }
+
+      const { error } = await supabase
+          .from('intake_log')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', userId);
+
+      if (error) {
+          throw new Error(error.message);
+      }
+
+      return { id, consumable: logData.consumable };
+  }
+);
+
+
+const intakeSlice = createSlice({
+  name: 'intake',
+  initialState,
+  reducers: {
+      resetIntakeState: (state) => {
+          state.drinkLogs = [];
+          state.creatineLogs = [];
+          state.dailyWaterTotal = 0;
+          state.dailyDrinkTotal = 0;
+          state.dailyCreatineTotal = 0;
+          state.status = 'idle';
+          state.error = null;
+      },
+  },
+  extraReducers: (builder) => {
+    builder
+        // Fetch drink logs
+        .addCase(fetchDrinkLogs.pending, (state) => {
+            state.status = 'loading';
+            state.error = null;
+        })
+        .addCase(fetchDrinkLogs.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.drinkLogs = action.payload;
+            state.dailyDrinkTotal = calculateDailyTotal(action.payload);
+            state.dailyWaterTotal = calculateDailyWaterTotal(action.payload);
+        })
+        .addCase(fetchDrinkLogs.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.error.message || 'Failed to fetch drink logs';
+        })
+        
+        // Fetch creatine logs
+        .addCase(fetchCreatineLogs.pending, (state) => {
+            state.status = 'loading';
+            state.error = null;
+        })
+        .addCase(fetchCreatineLogs.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.creatineLogs = action.payload;
+            state.dailyCreatineTotal = calculateDailyTotal(action.payload);
+        })
+        .addCase(fetchCreatineLogs.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.error.message || 'Failed to fetch creatine logs';
+        })
+        
+        // Add drink log
+        .addCase(addDrinkLog.pending, (state) => {
+            state.status = 'loading';
+            state.error = null;
+        })
+        .addCase(addDrinkLog.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.drinkLogs.unshift(action.payload);
+            state.dailyDrinkTotal += action.payload.amount;
+            state.dailyWaterTotal += action.payload.amount;
+        })
+        .addCase(addDrinkLog.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.error.message || 'Failed to add drink log';
+        })
+        
+        // Add creatine log
+        .addCase(addCreatineLog.pending, (state) => {
+            state.status = 'loading';
+            state.error = null;
+        })
+        .addCase(addCreatineLog.fulfilled, (state, action) => {
+            state.status = 'succeeded';
+            state.creatineLogs.unshift(action.payload);
+            state.dailyCreatineTotal += action.payload.amount;
+        })
+        .addCase(addCreatineLog.rejected, (state, action) => {
+            state.status = 'failed';
+            state.error = action.error.message || 'Failed to add creatine log';
+        })
+      
+      // Update intake log
+      .addCase(updateIntakeLog.fulfilled, (state, action) => {
+        const updatedLog = action.payload;
+        
+        // Check if it's a drink
+        if (isDrinkType(updatedLog.consumable)) {
+            const index = state.drinkLogs.findIndex(log => log.id === updatedLog.id);
+            if (index !== -1) {
+                state.drinkLogs[index] = updatedLog;
+                state.dailyDrinkTotal = calculateDailyTotal(state.drinkLogs);
+                state.dailyWaterTotal = calculateDailyWaterTotal(state.drinkLogs);
+            }
+        } else if (updatedLog.consumable === 'creatine') {
+            const index = state.creatineLogs.findIndex(log => log.id === updatedLog.id);
+            if (index !== -1) {
+                state.creatineLogs[index] = updatedLog;
+                state.dailyCreatineTotal = calculateDailyTotal(state.creatineLogs);
+            }
+        }
+    })
+    .addCase(updateIntakeLog.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to update intake log';
+    })
+      
+      // Delete intake log
+      .addCase(deleteIntakeLog.fulfilled, (state, action) => {
+        const { id, consumable } = action.payload;
+        
+        if (isDrinkType(consumable)) {
+            state.drinkLogs = state.drinkLogs.filter(log => log.id !== id);
+            state.dailyDrinkTotal = calculateDailyTotal(state.drinkLogs);
+            state.dailyWaterTotal = calculateDailyWaterTotal(state.drinkLogs);
+        } else if (consumable === 'creatine') {
+            state.creatineLogs = state.creatineLogs.filter(log => log.id !== id);
+            state.dailyCreatineTotal = calculateDailyTotal(state.creatineLogs);
+        }
+    })
+    .addCase(deleteIntakeLog.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to delete intake log';
+    });
+  },
+});
+
+export const { resetIntakeState } = intakeSlice.actions;
+
+// Selectors
+export const selectDrinkLogs = (state: RootState) => state.intake.drinkLogs;
+export const selectCreatineLogs = (state: RootState) => state.intake.creatineLogs;
+export const selectDailyWaterTotal = (state: RootState) => state.intake.dailyWaterTotal;
+export const selectDailyDrinkTotal = (state: RootState) => state.intake.dailyDrinkTotal;
+export const selectDailyCreatineTotal = (state: RootState) => state.intake.dailyCreatineTotal;
+export const selectIntakeStatus = (state: RootState) => state.intake.status;
+export const selectIntakeError = (state: RootState) => state.intake.error;
+
+export const selectTodayDrinkLogs = (state: RootState) => {
+    const today = getTodayDate();
+    return state.intake.drinkLogs.filter(log => 
+        log.consumed_at.startsWith(today)
+    );
+};
+
+export const selectTodayCreatineLogs = (state: RootState) => {
+    const today = getTodayDate();
+    return state.intake.creatineLogs.filter(log => 
+        log.consumed_at.startsWith(today)
+    );
+};
+
+export const selectDrinkLogsByDate = (state: RootState, date: string) => {
+    return state.intake.drinkLogs.filter(log => 
+        log.consumed_at.startsWith(date)
+    );
+};
+
+export const selectCreatineLogsByDate = (state: RootState, date: string) => {
+    return state.intake.creatineLogs.filter(log => 
+        log.consumed_at.startsWith(date)
+    );
+};
+
+export const selectWaterLogs = (state: RootState) => {
+    return state.intake.drinkLogs.filter(log => log.consumable === 'water');
+};
+
+export default intakeSlice.reducer;

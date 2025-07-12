@@ -16,13 +16,11 @@ import { useFocusEffect } from "expo-router";
 import * as Haptics from 'expo-haptics';
 import { selectUser } from "@/features/auth/authSlice";
 import { useAppSelector } from "@/store/hooks";
-import { selectDailyWaterTotal, addWaterLog } from "@/features/water/waterSlice";
-
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
+import { selectDailyWaterTotal, selectDailyCreatineTotal } from "@/features/intake/intakeSlice";
 
 const Today = () => {
   const waterAmount = useAppSelector(selectDailyWaterTotal);
-  const [creatineAmount, setCreatineAmount] = useState(0);
+  const creatineAmount = useAppSelector(selectDailyCreatineTotal)
   const [dailyGoal, setDailyGoal] = useState({
     creatine: 5.0,
     water: 150,
@@ -30,8 +28,6 @@ const Today = () => {
   const [showWaterSheet, setShowWaterSheet] = useState(false);
   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
 
-  const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
-  const user = useAppSelector(selectUser);
   const user = useAppSelector(selectUser);
   const [animationKey, setAnimationKey] = useState(0);
 
@@ -46,14 +42,6 @@ const Today = () => {
     const today = new Date().toISOString().split("T")[0];
     if (!user?.id) return;
 
-    // Fetch creatine logs
-    const { data: creatineData } = await supabase
-      .from("creatine_logs")
-      .select("dose_grams")
-      .eq("user_id", user.id)
-      .gte("taken_at", `${today}T00:00:00`)
-      .lte("taken_at", `${today}T23:59:59`);
-
     const { data: userSettings } = await supabase
       .from("user_settings")
       .select("creatine_goal, water_goal")
@@ -67,16 +55,12 @@ const Today = () => {
         water: water_goal,
       });
     }
-    if (creatineData) {
-      const total = creatineData.reduce((sum, log) => sum + log.dose_grams, 0);
-      setCreatineAmount(Number(total.toFixed(1)));
-    }
   }, []);
 
   // Fetch all initial data
   useEffect(() => {
     fetchData();
-  }, [fetchData, refreshTrigger]);
+  }, [fetchData]);
 
 
   useEffect(() => {
@@ -165,9 +149,6 @@ const Today = () => {
       <CreatineLogActionsheet
         showActionsheet={showCreatineSheet}
         handleClose={() => setShowCreatineSheet(false)}
-        onLog={() => {
-          refresh('creatine');
-        }}
       />
     </SafeAreaView>
   );

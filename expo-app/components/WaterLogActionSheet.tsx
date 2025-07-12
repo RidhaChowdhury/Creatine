@@ -28,10 +28,10 @@ import { Text } from "@/components/ui/text";
 import { ChevronDownIcon } from "@/components/ui/icon";
 import { supabase } from "@/lib/supabase";
 import { useAppDispatch } from "@/store/hooks";
-import { addWaterLog } from "@/features/water/waterSlice";
+import { addDrinkLog } from "@/features/intake/intakeSlice"
+import { DRINK_TYPES } from "@/lib/constants";
 
-const DRINK_OPTIONS = ["Water", "Juice", "Soda", "Coffee", "Tea"] as const;
-type DrinkType = (typeof DRINK_OPTIONS)[number];
+type DrinkType = (typeof DRINK_TYPES)[number];
 
 interface WaterLogActionsheetProps {
   showActionsheet: boolean;
@@ -44,7 +44,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const [amount, setAmount] = useState<string>("");
-  const [drinkType, setDrinkType] = useState<DrinkType>("Water");
+  const [drinkType, setDrinkType] = useState<DrinkType>("water");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -118,10 +118,10 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                       <SelectDragIndicatorWrapper>
                         <SelectDragIndicator />
                       </SelectDragIndicatorWrapper>
-                      {DRINK_OPTIONS.map((option) => (
+                      {DRINK_TYPES.map((option) => (
                         <SelectItem
                           key={option}
-                          label={option}
+                          label={option.charAt(0).toUpperCase() + option.slice(1)}
                           value={option}
                           className="rounded-xl"
                         />
@@ -139,7 +139,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
               className={`w-full bg-primary-0 ${!amount ? "opacity-70" : ""}`}
               onPress={async () => {
                 if (amount) {
-                  dispatch(addWaterLog({amount: Number(amount)}))
+                  dispatch(addDrinkLog({amount: Number(amount), consumable: drinkType}))
                   Keyboard.dismiss();
                   handleClose();
                 }

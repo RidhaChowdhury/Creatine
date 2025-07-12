@@ -3,7 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { router } from "expo-router";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser, logout } from "./authSlice"
-import { fetchWaterLogs, resetWaterState } from "../water/waterSlice";
+import { fetchDrinkLogs, fetchCreatineLogs, resetIntakeState } from "../intake/intakeSlice";
 
 export const AuthWatcher = () => {
     const dispatch = useAppDispatch();
@@ -38,7 +38,8 @@ export const AuthWatcher = () => {
                 if (session?.user) {
                     const onboarded = await hasSettings(session.user.id);
                     dispatch(setUser(session.user));
-                    dispatch(fetchWaterLogs());
+                    dispatch(fetchDrinkLogs());
+                    dispatch(fetchCreatineLogs());
                     if (onboarded) {
                         router.replace("/(tabs)");
                     } else {
@@ -46,7 +47,7 @@ export const AuthWatcher = () => {
                     }
                 } else {
                     dispatch(logout());
-                    dispatch(resetWaterState())
+                    dispatch(resetIntakeState())
                     router.replace("/(auth)/login");
                 }
             }

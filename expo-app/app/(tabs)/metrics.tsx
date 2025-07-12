@@ -14,7 +14,6 @@ import { supabase } from "@/lib/supabase";
 import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import CreatineDay from "@/components/CreatineDay";
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 import { CreatineHistory } from "@/components/CreatineHistory";
 import { WaterHistory } from "@/components/WaterHistory";
 import { Button } from "@/components/ui/button";
