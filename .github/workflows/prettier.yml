@@ -7,11 +7,13 @@ jobs:
   prettier:
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          cd expo-app
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: |
-          yarn
-          yarn prettier . --write
+          npx
+          npx prettier --write .
       - uses: autofix-ci/action@v1
         with:
           commit-message: "Apply Prettier format"
