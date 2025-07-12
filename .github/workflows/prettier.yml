@@ -10,8 +10,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
       - run: |
-          npx
-          npx prettier --write .
+          yarn
+          yarn prettier . --write
       - uses: autofix-ci/action@v1
         with:
           commit-message: "Apply Prettier format"
