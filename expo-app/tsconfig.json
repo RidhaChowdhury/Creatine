@@ -1,20 +1,20 @@
 {
-    "compilerOptions": {
-        // "jsx": "react-native",
-        "strict": true,
-        "paths": {
-            "@/*": ["./*"],
-            "tailwind.config": ["./tailwind.config.js"]
-        },
-        "types": ["@types/react-native-dotenv"]
-    },
-    "include": [
-        "**/*.ts",
-        "**/*.tsx",
-        ".expo/types/**/*.ts",
-        "expo-env.d.ts",
-        "nativewind-env.d.ts",
-        "lib/notifications.js"
-    ],
-    "extends": "expo/tsconfig.base"
+	"compilerOptions": {
+		// "jsx": "react-native",
+		"strict": true,
+		"paths": {
+			"@/*": ["./*"],
+			"tailwind.config": ["./tailwind.config.js"]
+		},
+		"types": ["@types/react-native-dotenv"]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		".expo/types/**/*.ts",
+		"expo-env.d.ts",
+		"nativewind-env.d.ts",
+		"lib/notifications.js"
+	],
+	"extends": "expo/tsconfig.base"
 }

@@ -5,9 +5,9 @@ const gridBaseStyle = isWeb ? 'grid grid-cols-12' : 'box-border flex-row flex-wr
 const gridItemBaseStyle = isWeb ? 'w-auto col-span-1' : '';
 
 export const gridStyle = tva({
-    base: `w-full ${gridBaseStyle}`,
+	base: `w-full ${gridBaseStyle}`
 });
 
 export const gridItemStyle = tva({
-    base: `w-full ${gridItemBaseStyle}`,
+	base: `w-full ${gridItemBaseStyle}`
 });
