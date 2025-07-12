@@ -32,6 +32,7 @@ const Today = () => {
 
   const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
   const user = useAppSelector(selectUser);
+  const user = useAppSelector(selectUser);
   const [animationKey, setAnimationKey] = useState(0);
 
   useFocusEffect(
