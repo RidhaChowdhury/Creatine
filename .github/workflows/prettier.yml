@@ -9,6 +9,9 @@ jobs:
     steps:
       - name: Checkout the repositiory
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Critical for push access
+          ref: ${{ github.head_ref || github.ref }}  # Handle both PR and push
       - name: Set up Node.js
         uses: actions/setup-node@v4
       - name: Format the code
