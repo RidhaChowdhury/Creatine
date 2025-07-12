@@ -6,18 +6,15 @@ import { AuthWatcher } from "@/features/auth/authWatcher";
 
 import "@/global.css";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { RefreshProvider } from "@/context/refreshContext";
 
 export default function RootLayout() {
   return (
-      <RefreshProvider>
-        <Provider store={store}>
+      <Provider store={store}>
         <GluestackUIProvider mode="dark">
           <AuthWatcher />
           <Stack screenOptions={{ headerShown: false }}/>
         </GluestackUIProvider>
-        </Provider>
-      </RefreshProvider>
+      </Provider>
     
   );
 }

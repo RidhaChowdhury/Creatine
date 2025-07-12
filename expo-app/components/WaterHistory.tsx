@@ -14,7 +14,6 @@ import { supabase } from "@/lib/supabase";
 import { Pie, PolarChart } from "victory-native";
 import { Divider } from "@/components/ui/divider";
 import WaterDay from "@/components/WaterDay";
-import { RefreshContext, RefreshContextType } from "@/context/refreshContext";
 
 type CommitData = {
   date: string;
@@ -39,7 +38,6 @@ export const WaterHistory = () => {
       const [daysLoggedData, setDaysLoggedData] = useState<number>(0);
       const [selectedDay, setSelectedDay] = useState(new Date().toISOString().split("T")[0]);
     
-      const { refresh, refreshTrigger }  = useContext<RefreshContextType>(RefreshContext);
         useEffect(() => {
           const fetchWaterData = async () => {
             try {
@@ -201,7 +199,7 @@ export const WaterHistory = () => {
                     };
 
                     fetchAllData();
-        }, [daysToShow, refreshTrigger.water]);
+        }, [daysToShow]);
 
         function generateRandomColor(): string {
           // Generate random values for red and green channels between 0 and 127 (0x00 to 0x7F)

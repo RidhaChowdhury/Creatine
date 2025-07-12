@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { router } from "expo-router";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser, logout } from "./authSlice"
+import { fetchDrinkLogs, fetchCreatineLogs, resetIntakeState } from "../intake/intakeSlice";
 
 export const AuthWatcher = () => {
     const dispatch = useAppDispatch();
@@ -36,8 +37,9 @@ export const AuthWatcher = () => {
             const handleAuthChange = async () => {
                 if (session?.user) {
                     const onboarded = await hasSettings(session.user.id);
-                    console.log(onboarded);
                     dispatch(setUser(session.user));
+                    dispatch(fetchDrinkLogs());
+                    dispatch(fetchCreatineLogs());
                     if (onboarded) {
                         router.replace("/(tabs)");
                     } else {
@@ -45,13 +47,12 @@ export const AuthWatcher = () => {
                     }
                 } else {
                     dispatch(logout());
+                    dispatch(resetIntakeState())
                     router.replace("/(auth)/login");
                 }
             }
 
-            handleAuthChange().catch(err => {
-                console.error("Error handling auth state change: ", err);
-            });
+            handleAuthChange();
         });
     }, []);
     
