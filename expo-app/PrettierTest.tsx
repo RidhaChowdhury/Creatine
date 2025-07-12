@@ -2,7 +2,8 @@
 export default function TestComponent() {
 	return (
 		<div>
-			<p>Unformatted content</p><p>test</p>
+			<p>Unformatted content</p>
+			<p>test</p>
 		</div>
 	);
 }
