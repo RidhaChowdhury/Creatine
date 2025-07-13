@@ -291,13 +291,13 @@ const Settings = () => {
             </View>
             <View>
               <Text className="text-[14px] pt-[8] py-[4] text-typography-300">
-                Water Unit
+                Drink Unit
               </Text>
               <Select
                 className="h-[45]"
                 isDisabled={activeEditSection !== "preferences"}
                 onValueChange={(value: string) =>
-                  handleInputChange("water_unit", value)
+                  handleInputChange("drink_unit", value)
                 }
               >
                 <SelectTrigger
@@ -316,7 +316,7 @@ const Settings = () => {
                     </SelectDragIndicatorWrapper>
                     <View style={{ width: "100%", paddingBottom: 30 }}>
                       <SelectSectionHeaderText className="text-xl">
-                        Water Unit
+                        Drink Unit
                       </SelectSectionHeaderText>
                       <SelectItem label="ml" value="ml" />
                       <SelectItem label="oz" value="oz" />
