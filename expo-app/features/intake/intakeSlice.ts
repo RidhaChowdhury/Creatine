@@ -1,7 +1,33 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction, createSelector } from "@reduxjs/toolkit";
 import { supabase } from "@/lib/supabase";
 import { RootState } from "@/store/store";
 import { DRINK_TYPES } from "@/lib/constants";
+import { selectDrinkUnit, selectSupplementUnit } from "../settings/settingsSlice";
+
+const OZ_TO_ML = 29.5735;
+
+function ozToMl(oz: number) {
+    return +(oz * OZ_TO_ML).toFixed(2);
+}
+
+function mlToOz(ml: number) {
+    return +(ml / OZ_TO_ML).toFixed(2);
+}
+
+// rn only need oz and ml, but putting this logic in separate function in case we expand in future
+function convertToDrinkUnit(amount: number, unit: string, drinkUnit: string) {
+    if (unit === drinkUnit) return +amount.toFixed(2);
+    return unit === 'oz' 
+        ? ozToMl(amount) 
+        : mlToOz(amount);
+}
+
+function convertToSupplementUnit(amount: number, unit: string, supplementUnit: string) {
+    if (unit === supplementUnit) return amount;
+    return unit === 'g'
+        ? amount*1000
+        : amount/1000;
+}
 
 type DrinkType = typeof DRINK_TYPES[number];
 type ConsumableType = DrinkType | 'creatine'
@@ -23,9 +49,6 @@ type IntakeLog = {
 type IntakeState = {
   drinkLogs: IntakeLog[];
   creatineLogs: IntakeLog[];
-  dailyWaterTotal: number;
-  dailyDrinkTotal: number;
-  dailyCreatineTotal: number;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
 }
@@ -33,9 +56,6 @@ type IntakeState = {
 const initialState: IntakeState = {
   drinkLogs: [],
   creatineLogs: [],
-  dailyWaterTotal: 0,
-  dailyDrinkTotal: 0,
-  dailyCreatineTotal: 0,
   status: 'idle',
   error: null,
 }
@@ -73,19 +93,7 @@ const get30DaysAgo = (): string => {
 
 /* !TODO: Once we have settingsSlice and can change units, it's imperative we make sure we are accounting for the unit of each log 
 when adding a total */
-const calculateDailyTotal = (logs: IntakeLog[]): number => {
-    const today = getTodayDate();
-    return logs
-      .filter(log => log.consumed_at.startsWith(today))
-      .reduce((sum, log) => sum + Number(log.amount), 0);
-};
 
-const calculateDailyWaterTotal = (logs: IntakeLog[]): number => {
-    const today = getTodayDate();
-    return logs
-      .filter(log => log.consumed_at.startsWith(today) && log.consumable === 'water')
-      .reduce((sum, log) => sum + Number(log.amount), 0);
-};
 
 // Thunk to fetch drink logs (last 30 days)
 export const fetchDrinkLogs = createAsyncThunk<IntakeLog[], void, { state: RootState }>(
@@ -284,9 +292,6 @@ const intakeSlice = createSlice({
       resetIntakeState: (state) => {
           state.drinkLogs = [];
           state.creatineLogs = [];
-          state.dailyWaterTotal = 0;
-          state.dailyDrinkTotal = 0;
-          state.dailyCreatineTotal = 0;
           state.status = 'idle';
           state.error = null;
       },
@@ -301,8 +306,6 @@ const intakeSlice = createSlice({
         .addCase(fetchDrinkLogs.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.drinkLogs = action.payload;
-            state.dailyDrinkTotal = calculateDailyTotal(action.payload);
-            state.dailyWaterTotal = calculateDailyWaterTotal(action.payload);
         })
         .addCase(fetchDrinkLogs.rejected, (state, action) => {
             state.status = 'failed';
@@ -317,7 +320,6 @@ const intakeSlice = createSlice({
         .addCase(fetchCreatineLogs.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.creatineLogs = action.payload;
-            state.dailyCreatineTotal = calculateDailyTotal(action.payload);
         })
         .addCase(fetchCreatineLogs.rejected, (state, action) => {
             state.status = 'failed';
@@ -332,8 +334,6 @@ const intakeSlice = createSlice({
         .addCase(addDrinkLog.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.drinkLogs.unshift(action.payload);
-            state.dailyDrinkTotal += action.payload.amount;
-            state.dailyWaterTotal += action.payload.amount;
         })
         .addCase(addDrinkLog.rejected, (state, action) => {
             state.status = 'failed';
@@ -348,7 +348,6 @@ const intakeSlice = createSlice({
         .addCase(addCreatineLog.fulfilled, (state, action) => {
             state.status = 'succeeded';
             state.creatineLogs.unshift(action.payload);
-            state.dailyCreatineTotal += action.payload.amount;
         })
         .addCase(addCreatineLog.rejected, (state, action) => {
             state.status = 'failed';
@@ -364,14 +363,11 @@ const intakeSlice = createSlice({
             const index = state.drinkLogs.findIndex(log => log.id === updatedLog.id);
             if (index !== -1) {
                 state.drinkLogs[index] = updatedLog;
-                state.dailyDrinkTotal = calculateDailyTotal(state.drinkLogs);
-                state.dailyWaterTotal = calculateDailyWaterTotal(state.drinkLogs);
             }
         } else if (updatedLog.consumable === 'creatine') {
             const index = state.creatineLogs.findIndex(log => log.id === updatedLog.id);
             if (index !== -1) {
                 state.creatineLogs[index] = updatedLog;
-                state.dailyCreatineTotal = calculateDailyTotal(state.creatineLogs);
             }
         }
     })
@@ -386,11 +382,8 @@ const intakeSlice = createSlice({
         
         if (isDrinkType(consumable)) {
             state.drinkLogs = state.drinkLogs.filter(log => log.id !== id);
-            state.dailyDrinkTotal = calculateDailyTotal(state.drinkLogs);
-            state.dailyWaterTotal = calculateDailyWaterTotal(state.drinkLogs);
         } else if (consumable === 'creatine') {
             state.creatineLogs = state.creatineLogs.filter(log => log.id !== id);
-            state.dailyCreatineTotal = calculateDailyTotal(state.creatineLogs);
         }
     })
     .addCase(deleteIntakeLog.rejected, (state, action) => {
@@ -405,9 +398,6 @@ export const { resetIntakeState } = intakeSlice.actions;
 // Selectors
 export const selectDrinkLogs = (state: RootState) => state.intake.drinkLogs;
 export const selectCreatineLogs = (state: RootState) => state.intake.creatineLogs;
-export const selectDailyWaterTotal = (state: RootState) => state.intake.dailyWaterTotal;
-export const selectDailyDrinkTotal = (state: RootState) => state.intake.dailyDrinkTotal;
-export const selectDailyCreatineTotal = (state: RootState) => state.intake.dailyCreatineTotal;
 export const selectIntakeStatus = (state: RootState) => state.intake.status;
 export const selectIntakeError = (state: RootState) => state.intake.error;
 
@@ -440,5 +430,33 @@ export const selectCreatineLogsByDate = (state: RootState, date: string) => {
 export const selectWaterLogs = (state: RootState) => {
     return state.intake.drinkLogs.filter(log => log.consumable === 'water');
 };
+
+export const selectDailyWaterTotal = createSelector(
+    [selectDrinkLogs, selectDrinkUnit],
+    (logs, drinkUnit) => {
+        const today = getTodayDate();
+        return logs
+            .filter(log => log.consumed_at.startsWith(today))
+            .reduce((sum, log) => {
+                const amountInTargetUnit = convertToDrinkUnit(log.amount, log.unit, drinkUnit);
+                // TODO, add hyrdration factors
+                const factor = 1.0;
+                return sum + amountInTargetUnit * factor;
+            }, 0);
+    }
+);
+
+export const selectDailyCreatineTotal = createSelector(
+    [selectCreatineLogs, selectSupplementUnit],
+    (logs, supplementUnit) => {
+        const today = getTodayDate();
+        return logs
+            .filter(log => log.consumed_at.startsWith(today))
+            .reduce((sum, log) => {
+                const amountInTargetUnit = convertToSupplementUnit(log.amount, log.unit, supplementUnit);
+                return sum + amountInTargetUnit ;
+            }, 0);
+    }
+)
 
 export default intakeSlice.reducer;

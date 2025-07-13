@@ -14,21 +14,22 @@ import { Button, ButtonText } from '@/components/ui/button'
 import { Heading } from '@/components/ui/heading'
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
-import { supabase } from '@/lib/supabase'
 import { router } from 'expo-router'
 import { selectUser } from "@/features/auth/authSlice";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { addSettings } from '@/features/settings/settingsSlice'
 
 const Onboarding = () => {
   const [showAlertDialog, setShowAlertDialog] = React.useState(false)
   const handleClose = () => setShowAlertDialog(false)
 
   const user = useAppSelector(selectUser);
+  const dispatch = useAppDispatch();
 
   const [formData, setFormData] = React.useState({
     name: '',
-    height: '',
-    weight: '',
+    height: 0,
+    weight: 0,
     sex: '',
   })
 
@@ -55,7 +56,7 @@ const Onboarding = () => {
     };
   }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // input validation
     if(formData.name == ''){
       setIsNameInvalid(true)
@@ -63,13 +64,13 @@ const Onboarding = () => {
     } else {
       setIsNameInvalid(false)
     }
-    if(formData.height == ''){
+    if(!formData.height){
       setIsHeightInvalid(true)
       return
     } else {
       setIsHeightInvalid(false)
     }
-    if(formData.weight == ''){
+    if(!formData.weight){
       setIsWeightInvalid(true)
       return
     } else {
@@ -81,20 +82,8 @@ const Onboarding = () => {
     } else {
       setIsSexInvalid(false)
     }
-    const { error } = await supabase
-      .from('user_settings')
-      .insert({
-        name: formData.name,
-        height: formData.height,
-        weight: formData.weight,
-        sex: formData.sex,
-        user_id: user?.id
-      })
 
-    if (error) {
-      console.error('Error creating user settings:', error)
-      return
-    }
+    dispatch(addSettings({formData: formData}))
 
     router.replace("/(tabs)")
   }
@@ -112,7 +101,7 @@ const Onboarding = () => {
           <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your height (in inches)?</Text>
         </View>
         <Input className='h-[45]' isRequired={true} isInvalid={isHeightInvalid}>
-          <InputField placeholder='72' onChangeText={(e: string) => setFormData(prev => ({ ...prev, height: e }))}></InputField>
+          <InputField placeholder='72' onChangeText={(e: string) => setFormData(prev => ({ ...prev, height: Number(e) }))}></InputField>
         </Input>
         <View className='flex-row items-center justify-between'>
           <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your weight (lbs)?</Text>
@@ -139,7 +128,7 @@ const Onboarding = () => {
           </AlertDialog>
         </View>
         <Input className='h-[45]' isRequired={true} isInvalid={isWeightInvalid}>
-          <InputField placeholder='200' onChangeText={(e: string) => setFormData(prev => ({ ...prev, weight: e }))}></InputField>
+          <InputField placeholder='200' onChangeText={(e: string) => setFormData(prev => ({ ...prev, weight: Number(e) }))}></InputField>
         </Input>
 
         <Text className='text-[14px] font-semibold pt-[25] pb-[10]'>What's your sex?</Text>

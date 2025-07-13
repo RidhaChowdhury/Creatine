@@ -1,23 +1,23 @@
 import { View, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native'
-import React, { useContext } from 'react'
+import React from 'react'
 import { Button, ButtonText } from "@/components/ui/button"
 import { supabase } from '@/lib/supabase'
 import { Text } from '@/components/ui/text/'
 import {CircleUser, Pencil, Check, X, Crown} from 'lucide-react-native'
-import { UserSettings } from '@/types'
+import { selectUserSettings } from '@/features/settings/settingsSlice'
 import { Input, InputField } from "@/components/ui/input"
 import { Select, SelectBackdrop, SelectContent, SelectDragIndicator, SelectDragIndicatorWrapper, SelectIcon, SelectInput, SelectItem, SelectPortal, SelectSectionHeaderText, SelectTrigger } from '@/components/ui/select'
 import { ChevronDownIcon } from '@/components/ui/icon'
-import { router } from 'expo-router'
 import { Box } from '@/components/ui/box'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { selectUser, setUser } from '@/features/auth/authSlice'
+import { updateSettings } from '@/features/settings/settingsSlice'
 
 const Settings = () => {
     const dispatch = useAppDispatch();
-    const user = useAppSelector(selectUser)
-    const [settings, setSettings] = React.useState<UserSettings | null>(null);
-    const [formState, setFormState] = React.useState({})
+    const user = useAppSelector(selectUser);
+    const settings = useAppSelector(selectUserSettings);
+    const [formState, setFormState] = React.useState({});
     const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
     
     const toggleEdit = (section: string) => {
@@ -31,46 +31,10 @@ const Settings = () => {
         }));
     };
 
-    const handleSave = async () => {
-        // console.log('Saving settings:', formState)
-        if (!settings) return;
-        const { error } = await supabase
-            .from('user_settings')
-            .update({
-                ...formState
-            })
-            .eq('user_id', user?.id)
-            .single()
-
-        if (error) {
-            console.error('Error updating user settings:', error)
-            return
-        }
-
-        setSettings({ ...settings, ...formState })
+    const handleSave = () => {
+        dispatch(updateSettings({formData: { ...settings, ...formState}} ))
         toggleEdit(activeEditSection!)
     };
-
-    React.useEffect(() => {
-      if ( !user ) return;
-        const fetchSettings = async () => {
-            const { data, error } = await supabase
-                .from('user_settings')
-                .select('*')
-                .eq('user_id', user?.id)
-                .single()
-
-            if (error) {
-                console.error('Error fetching user settings:', error)
-                return
-            }
-
-            setSettings(data)
-            setFormState(data)
-        }
-
-        fetchSettings()
-    }, [user])
 
     return (
       <SafeAreaView className="bg-background-0 h-full">
@@ -78,7 +42,7 @@ const Settings = () => {
           <View className="flex-row items-center">
             <CircleUser color={"white"} size={48} />
             <Text className="text-[20px] font-semibold pl-[7]">
-              {settings?.name}
+              {settings.name}
             </Text>
           </View>
           <Button className="bg-[#2B4593] mt-[10] h-[45] rounded-[15px]">
@@ -171,7 +135,7 @@ const Settings = () => {
             </View>
             <View>
               <Text className="text-[14px] py-[4] text-typography-300">
-                Water Goal ({settings?.water_unit})
+                Water Goal ({settings?.drink_unit})
               </Text>
               <Input
                 className="h-[45]"
@@ -327,13 +291,13 @@ const Settings = () => {
             </View>
             <View>
               <Text className="text-[14px] pt-[8] py-[4] text-typography-300">
-                Water Unit
+                Drink Unit
               </Text>
               <Select
                 className="h-[45]"
                 isDisabled={activeEditSection !== "preferences"}
                 onValueChange={(value: string) =>
-                  handleInputChange("water_unit", value)
+                  handleInputChange("drink_unit", value)
                 }
               >
                 <SelectTrigger
@@ -341,7 +305,7 @@ const Settings = () => {
                   variant="outline"
                   size="md"
                 >
-                  <SelectInput placeholder={settings?.water_unit} />
+                  <SelectInput placeholder={settings?.drink_unit} />
                   <SelectIcon className="mr-3" as={ChevronDownIcon} />
                 </SelectTrigger>
                 <SelectPortal>
@@ -352,7 +316,7 @@ const Settings = () => {
                     </SelectDragIndicatorWrapper>
                     <View style={{ width: "100%", paddingBottom: 30 }}>
                       <SelectSectionHeaderText className="text-xl">
-                        Water Unit
+                        Drink Unit
                       </SelectSectionHeaderText>
                       <SelectItem label="ml" value="ml" />
                       <SelectItem label="oz" value="oz" />
