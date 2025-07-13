@@ -4,9 +4,8 @@ import { textStyle } from './styles';
 
 type ITextProps = React.ComponentProps<'span'> & VariantProps<typeof textStyle>;
 
-const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(
-  function Text(
-    {
+const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(function Text(
+   {
       className,
       isTruncated,
       bold,
@@ -17,28 +16,27 @@ const Text = React.forwardRef<React.ComponentRef<'span'>, ITextProps>(
       italic,
       highlight,
       ...props
-    }: { className?: string } & ITextProps,
-    ref
-  ) {
-    return (
+   }: { className?: string } & ITextProps,
+   ref
+) {
+   return (
       <span
-        className={textStyle({
-          isTruncated,
-          bold,
-          underline,
-          strikeThrough,
-          size,
-          sub,
-          italic,
-          highlight,
-          class: className,
-        })}
-        {...props}
-        ref={ref}
+         className={textStyle({
+            isTruncated,
+            bold,
+            underline,
+            strikeThrough,
+            size,
+            sub,
+            italic,
+            highlight,
+            class: className
+         })}
+         {...props}
+         ref={ref}
       />
-    );
-  }
-);
+   );
+});
 
 Text.displayName = 'Text';
 
