@@ -1,27 +1,35 @@
-name: autofix.ci
+name: Format code
 on:
   pull_request:
   push:
-permissions: {}
+permissions:
+  contents: write
 jobs:
   prettier:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout the repositiory
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Critical for push access
-          ref: ${{ github.head_ref || github.ref }}  # Handle both PR and push
-      - name: Set up Node.js
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }} 
+
+      - name: Setup Node
         uses: actions/setup-node@v4
-      - name: Format the code
+
+      - name: Format code
         run: |
           cd expo-app
-          npx prettier . --write
+          npm run format
+
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "Apply Prettier format"
-          git push
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"
+          else
+            git commit -m "Apply Prettier formatting"
+            git push origin HEAD:${{ github.ref }}  # Push to current branch
+          fi
