@@ -1,7 +1,1 @@
-export const DRINK_TYPES = [
-  'water', 
-  'juice', 
-  'soda', 
-  'coffee', 
-  'tea', 
-] as const;
+export const DRINK_TYPES = ['water', 'juice', 'soda', 'coffee', 'tea'] as const;
