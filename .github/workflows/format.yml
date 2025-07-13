@@ -1,7 +1,6 @@
 name: Format code
 on:
   pull_request:
-  push:
 permissions:
   contents: write
 jobs:
@@ -11,8 +10,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -21,14 +21,17 @@ jobs:
         run: |
           cd expo-app
           npx prettier . --write
+
       - name: Commit and push changes
+        if: github.event.pull_request.head.repo.full_name == github.repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           if [ -z "$(git status --porcelain)" ]; then
-            echo "No changes to commit"   
+            echo "No changes to commit"
           else
             git commit -m "Apply Prettier formatting"
-            git push origin HEAD:${{ github.ref }}  # Push to current branch
+            # Push to the PR's SOURCE BRANCH
+            git push origin HEAD:${{ github.head_ref }}
           fi

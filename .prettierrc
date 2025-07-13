@@ -8,5 +8,6 @@
    "trailingComma": "none",
    "printWidth": 100,
    "tabWidth": 3,
-   "singleAttributePerLine": true
+   "singleAttributePerLine": true,
+   "endOfLine": "lf"
 }
