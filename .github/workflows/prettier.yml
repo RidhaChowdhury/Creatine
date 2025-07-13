@@ -20,7 +20,7 @@ jobs:
       - name: Format code
         run: |
           cd expo-app
-          npm run format
+          npx prettier . --write
 
       - name: Commit and push changes
         run: |
