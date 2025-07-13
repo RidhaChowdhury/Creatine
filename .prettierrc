@@ -7,7 +7,6 @@
     "arrowParens": "always",
     "trailingComma": "none",
     "printWidth": 100,
-    "tabWidth": 4,
-    "useTabs": true,
-    "singleAttributePerLine": false
+    "tabWidth": 3,
+    "singleAttributePerLine": true
 }
