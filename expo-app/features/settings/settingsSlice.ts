@@ -38,7 +38,7 @@ const initialState: SettingsState = {
   error: null,
 }
 
-export const fetchSettings = createAsyncThunk<UserSettings, void, { state: RootState }>(
+export const fetchSettings = createAsyncThunk<UserSettings | null, void, { state: RootState }>(
   'settings/fetchSettings',
   async (_, thunkAPI) => {
     const state = thunkAPI.getState();
@@ -59,7 +59,7 @@ export const fetchSettings = createAsyncThunk<UserSettings, void, { state: RootS
       throw new Error(error.message);
     }
 
-    return data || [];
+    return data;
   }
 );
 
@@ -145,7 +145,9 @@ const settingsSlice = createSlice({
       })
       .addCase(fetchSettings.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        Object.assign(state, action.payload);
+        if (action.payload) {
+          Object.assign(state, action.payload);
+        }
       })
       .addCase(fetchSettings.rejected, (state, action) => {
         state.status = 'failed';
