@@ -50,7 +50,9 @@ export const AuthWatcher = () => {
                 }
             }
 
-            handleAuthChange();
+            handleAuthChange().catch(err => {
+                console.error("Error handling auth state change: ", err);
+            });
         });
     }, []);
     
