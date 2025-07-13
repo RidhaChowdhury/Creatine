@@ -1,0 +1,33 @@
+name: Format code
+on:
+  pull_request:
+permissions:
+  contents: write
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }} 
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+
+      - name: Format code
+        run: |
+          cd expo-app
+          npx prettier . --write
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"   
+          else
+            git commit -m "Apply Prettier formatting"
+            git push origin HEAD:${{ github.ref }}  # Push to current branch
+          fi
