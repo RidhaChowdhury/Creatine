@@ -1,4 +1,4 @@
-import { View, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';
@@ -20,6 +20,7 @@ import {
    selectSupplementUnit,
    selectWaterGoal
 } from '@/features/settings/settingsSlice';
+import * as Notifications from 'expo-notifications';
 
 const Today = () => {
    const waterAmount = useAppSelector(selectDailyWaterTotal);
@@ -31,6 +32,15 @@ const Today = () => {
    const [showWaterSheet, setShowWaterSheet] = useState(false);
    const [showCreatineSheet, setShowCreatineSheet] = useState(false);
    const [animationKey, setAnimationKey] = useState(0);
+
+   useEffect(() => {
+      // Request permissions on mount
+      (async () => {
+         const { status } = await Notifications.requestPermissionsAsync();
+         if (status !== 'granted') {
+         }
+      })();
+   }, []);
 
    useFocusEffect(
       useCallback(() => {
