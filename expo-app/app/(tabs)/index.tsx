@@ -20,7 +20,7 @@ import {
    selectSupplementUnit,
    selectWaterGoal
 } from '@/features/settings/settingsSlice';
-import * as Notifications from 'expo-notifications';
+import { NotificationService } from '@/lib/notifications';
 
 const Today = () => {
    const waterAmount = useAppSelector(selectDailyWaterTotal);
@@ -33,12 +33,10 @@ const Today = () => {
    const [showCreatineSheet, setShowCreatineSheet] = useState(false);
    const [animationKey, setAnimationKey] = useState(0);
 
+   // notifications
    useEffect(() => {
-      // Request permissions on mount
       (async () => {
-         const { status } = await Notifications.requestPermissionsAsync();
-         if (status !== 'granted') {
-         }
+         await NotificationService.initialize();
       })();
    }, []);
 
