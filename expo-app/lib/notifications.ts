@@ -114,7 +114,7 @@ export class NotificationService {
    static async cancelWaterReminders(): Promise<void> {
       try {
          const ids = await this.getWaterNotificationIds();
-         for (const id in ids) {
+         for (const id of ids) {
             await Notifications.cancelScheduledNotificationAsync(id);
             await this.clearWaterNotificationIds();
          }
