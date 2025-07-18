@@ -11,6 +11,7 @@ export type UserSettings = {
    supplement_unit: string;
    water_goal: number;
    creatine_goal: number;
+   creatine_reminder_time: string | null;
 };
 
 type OnboardingSettings = {
@@ -34,6 +35,7 @@ const initialState: SettingsState = {
    supplement_unit: 'g',
    water_goal: 0,
    creatine_goal: 0,
+   creatine_reminder_time: null,
    status: 'idle',
    error: null
 };

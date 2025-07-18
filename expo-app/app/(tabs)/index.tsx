@@ -154,7 +154,8 @@ const Today = () => {
             onClose={() => {
                setShowModal(false);
             }}
-            size='md'>
+            size='md'
+            closeOnOverlayClick={false}>
             <ModalBackdrop />
             <ModalContent>
                <ModalHeader>
