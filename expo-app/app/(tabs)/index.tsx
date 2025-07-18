@@ -1,5 +1,5 @@
 import { View, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext, ChangeEvent } from 'react';
 import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';
 import { GlassWater } from 'lucide-react-native';
@@ -7,7 +7,7 @@ import CreatineScoopIcon from '@/components/CreatineScoop';
 import { WaterLogActionsheet } from '@/components/WaterLogActionSheet';
 import { CreatineLogActionsheet } from '@/components/CreatineLogActionSheet';
 import { HStack } from '@/components/ui/hstack';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonText } from '@/components/ui/button';
 import { WaveBackground } from '@/components/WaveBackground';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated';
@@ -21,6 +21,9 @@ import {
    selectWaterGoal
 } from '@/features/settings/settingsSlice';
 import { NotificationService } from '@/lib/notifications';
+import { Modal, ModalBackdrop, ModalContent, ModalHeader } from '@/components/ui/modal';
+import { Heading } from '@/components/ui/heading';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 const Today = () => {
    const waterAmount = useAppSelector(selectDailyWaterTotal);
@@ -32,11 +35,16 @@ const Today = () => {
    const [showWaterSheet, setShowWaterSheet] = useState(false);
    const [showCreatineSheet, setShowCreatineSheet] = useState(false);
    const [animationKey, setAnimationKey] = useState(0);
+   const [showModal, setShowModal] = useState(false);
+   const [date, setDate] = useState(new Date());
 
    // notifications
    useEffect(() => {
       (async () => {
-         await NotificationService.initialize();
+         const { showReminderTimeModal } = await NotificationService.initialize();
+         if (showReminderTimeModal) {
+            setShowModal(true);
+         }
       })();
    }, []);
 
@@ -57,6 +65,11 @@ const Today = () => {
          triggerHaptic();
       }
    }, [waterAmount, waterGoal]);
+
+   const onChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
+      const currentDate = selectedDate || date;
+      setDate(currentDate);
+   };
 
    return (
       <SafeAreaView className='bg-background-0 flex-1'>
@@ -134,6 +147,43 @@ const Today = () => {
             showActionsheet={showCreatineSheet}
             handleClose={() => setShowCreatineSheet(false)}
          />
+
+         {/* Creatine reminder time modal */}
+         <Modal
+            isOpen={showModal}
+            onClose={() => {
+               setShowModal(false);
+            }}
+            size='md'>
+            <ModalBackdrop />
+            <ModalContent>
+               <ModalHeader>
+                  <Heading
+                     size='md'
+                     className='text-typography-950'>
+                     Lock in your daily creatine reminder!
+                  </Heading>
+               </ModalHeader>
+               <View className='flex-row mt-4'>
+                  <View className='w-1/2'>
+                     <DateTimePicker
+                        testID='timePicker'
+                        value={date}
+                        mode='time'
+                        display='default'
+                        onChange={onChange}
+                     />
+                  </View>
+                  <Button
+                     className='w-1/2'
+                     onPress={() => {
+                        setShowModal(false);
+                     }}>
+                     <ButtonText>Submit</ButtonText>
+                  </Button>
+               </View>
+            </ModalContent>
+         </Modal>
       </SafeAreaView>
    );
 };

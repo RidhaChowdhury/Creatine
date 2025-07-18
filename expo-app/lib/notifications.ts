@@ -224,22 +224,28 @@ export class NotificationService {
       }
    }
 
-   static async initialize(): Promise<void> {
+   static async initialize(): Promise<{ showReminderTimeModal: boolean }> {
       try {
          const hasPermission = await NotificationService.checkPermissions();
          if (!hasPermission) {
             const granted = await NotificationService.requestPermissions();
             if (granted) {
                // possibly make them setup creatine time here in future
-               console.log('about to schedule a creatine reminder');
-               await this.scheduleCreatineReminder();
+               return { showReminderTimeModal: true };
             }
+            return { showReminderTimeModal: false };
          } else {
             // Clean up any orphaned notifications (IDs stored but notification doesn't exist)
             await this.cleanupOrphanedNotifications();
+
+            // TODO: if they have permissions then they should have a creatine reminder at teh time specified in DB
+            // TODO: This fixes case where user originally says no to reminders but then changes it later through settings. This will catch that.
+            // TODO: maybe then we show modal
+            return { showReminderTimeModal: true };
          }
       } catch (error) {
          console.error('Error initializing notification service:', error);
+         return { showReminderTimeModal: false };
       }
    }
 }
