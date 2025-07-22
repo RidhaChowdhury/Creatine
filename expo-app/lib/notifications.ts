@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { store } from '@/store/store';
 
 export const STORAGE_KEYS = {
    CREATINE_NOTIFICATION_ID: 'creatine_notification_id',
@@ -129,7 +130,6 @@ export class NotificationService {
       try {
          const hasPermission = await this.checkPermissions();
          if (!hasPermission) {
-            console.log('No notification permission for creatine reminder');
             return;
          }
 
@@ -137,14 +137,9 @@ export class NotificationService {
 
          await this.cancelCreatineReminder();
 
-         console.log('hello fellas');
-
          const [hours, minutes] = reminderTime.split(':').map(Number);
          const scheduledDate = new Date();
          scheduledDate.setHours(hours, minutes, 0, 0);
-
-         console.log('hour: ', scheduledDate.getHours());
-         console.log('mins: ', scheduledDate.getMinutes());
 
          const id = await Notifications.scheduleNotificationAsync({
             content: {
@@ -168,7 +163,6 @@ export class NotificationService {
       try {
          const hasPermission = await this.checkPermissions();
          if (!hasPermission) {
-            console.log('No notification permission for water reminders');
             return;
          }
 
@@ -230,7 +224,6 @@ export class NotificationService {
          if (!hasPermission) {
             const granted = await NotificationService.requestPermissions();
             if (granted) {
-               // possibly make them setup creatine time here in future
                return { showReminderTimeModal: true };
             }
             return { showReminderTimeModal: false };
@@ -238,10 +231,12 @@ export class NotificationService {
             // Clean up any orphaned notifications (IDs stored but notification doesn't exist)
             await this.cleanupOrphanedNotifications();
 
-            // TODO: if they have permissions then they should have a creatine reminder at teh time specified in DB
-            // TODO: This fixes case where user originally says no to reminders but then changes it later through settings. This will catch that.
-            // TODO: maybe then we show modal
-            return { showReminderTimeModal: true };
+            // if user's creatineReminderTIme is still null but we have permission, show the modal
+            const creatineReminderTime = store.getState().settings.creatine_reminder_time;
+            if (creatineReminderTime === null) {
+               return { showReminderTimeModal: true };
+            }
+            return { showReminderTimeModal: false };
          }
       } catch (error) {
          console.error('Error initializing notification service:', error);

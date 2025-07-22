@@ -13,12 +13,14 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDailyWaterTotal, selectDailyCreatineTotal } from '@/features/intake/intakeSlice';
 import {
    selectDrinkUnit,
+   selectInitialFetchStatus,
    selectSupplementUnit,
-   selectWaterGoal
+   selectWaterGoal,
+   updateCreatineReminderTime
 } from '@/features/settings/settingsSlice';
 import { NotificationService } from '@/lib/notifications';
 import { Modal, ModalBackdrop, ModalContent, ModalHeader } from '@/components/ui/modal';
@@ -26,6 +28,8 @@ import { Heading } from '@/components/ui/heading';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 const Today = () => {
+   const dispatch = useAppDispatch();
+
    const waterAmount = useAppSelector(selectDailyWaterTotal);
    const creatineAmount = useAppSelector(selectDailyCreatineTotal);
    const waterGoal = useAppSelector(selectWaterGoal);
@@ -38,15 +42,28 @@ const Today = () => {
    const [showModal, setShowModal] = useState(false);
    const [date, setDate] = useState(new Date());
 
+   const getTimeString = (date: Date) => {
+      const hh = date.getHours().toString().padStart(2, '0');
+      const mm = date.getMinutes().toString().padStart(2, '0');
+      const ss = date.getSeconds().toString().padStart(2, '0');
+      const timeString = `${hh}:${mm}:${ss}`;
+
+      return timeString;
+   };
+
+   const initialFetchStatus = useAppSelector(selectInitialFetchStatus);
+
    // notifications
    useEffect(() => {
-      (async () => {
-         const { showReminderTimeModal } = await NotificationService.initialize();
-         if (showReminderTimeModal) {
-            setShowModal(true);
-         }
-      })();
-   }, []);
+      if (initialFetchStatus === 'succeeded') {
+         (async () => {
+            const { showReminderTimeModal } = await NotificationService.initialize();
+            if (showReminderTimeModal) {
+               setShowModal(true);
+            }
+         })();
+      }
+   }, [initialFetchStatus]);
 
    useFocusEffect(
       useCallback(() => {
@@ -177,7 +194,12 @@ const Today = () => {
                   </View>
                   <Button
                      className='w-1/2'
-                     onPress={() => {
+                     onPress={async () => {
+                        const reminderTimeString = getTimeString(date);
+                        dispatch(
+                           updateCreatineReminderTime({ creatineReminderTime: reminderTimeString })
+                        );
+                        await NotificationService.scheduleCreatineReminder(reminderTimeString);
                         setShowModal(false);
                      }}>
                      <ButtonText>Submit</ButtonText>
