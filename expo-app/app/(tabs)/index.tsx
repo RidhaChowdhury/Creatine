@@ -53,6 +53,18 @@ const Today = () => {
 
    const initialFetchStatus = useAppSelector(selectInitialFetchStatus);
 
+   // in the event we come from onboarding (or our fetch status wins the race before our component mounts)
+   useEffect(() => {
+      if (initialFetchStatus === 'succeeded') {
+         (async () => {
+            const { showReminderTimeModal } = await NotificationService.initialize();
+            if (showReminderTimeModal) {
+               setShowModal(true);
+            }
+         })();
+      }
+   }, []);
+
    // notifications
    useEffect(() => {
       if (initialFetchStatus === 'succeeded') {
