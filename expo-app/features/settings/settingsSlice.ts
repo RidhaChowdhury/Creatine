@@ -242,5 +242,7 @@ export const selectWaterGoal = (state: RootState) => state.settings.water_goal;
 export const selectDrinkUnit = (state: RootState) => state.settings.drink_unit;
 export const selectSupplementUnit = (state: RootState) => state.settings.supplement_unit;
 export const selectInitialFetchStatus = (state: RootState) => state.settings.initialFetchStatus;
+export const selectCreatineGoal = (state: RootState) => state.settings.creatine_goal;
+export const selectSettingsStatus = (state: RootState) => state.settings.status;
 
 export default settingsSlice.reducer;

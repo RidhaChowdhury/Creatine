@@ -3,10 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { store } from '@/store/store';
 
 export const STORAGE_KEYS = {
-   CREATINE_NOTIFICATION_ID: 'creatine_notification_id',
-   WATER_NOTIFICATION_IDS: 'water_notification_ids'
-   // NOTIFICATION_PREFERENCES: 'notification_preferences',
+   CREATINE_NOTIFICATIONS: 'creatine_notifications',
+   WATER_NOTIFICATION_IDS: 'water_notification_ids',
+   LAST_NOTIFICATION_MAINTENANCE: 'last_notification_maintenance'
 } as const;
+
+interface ScheduledNotification {
+   id: string;
+   date: string;
+   timestamp: number;
+}
 
 Notifications.setNotificationHandler({
    handleNotification: async () => ({
@@ -44,30 +50,32 @@ export class NotificationService {
       }
    }
 
-   // AsyncStorage helpers //
-
-   static async saveCreatineNotificationId(id: string): Promise<void> {
+   static async saveCreatineNotifications(notifications: ScheduledNotification[]): Promise<void> {
       try {
-         await AsyncStorage.setItem(STORAGE_KEYS.CREATINE_NOTIFICATION_ID, id);
+         await AsyncStorage.setItem(
+            STORAGE_KEYS.CREATINE_NOTIFICATIONS,
+            JSON.stringify(notifications)
+         );
       } catch (error) {
-         console.error('Error saving creatine notification id to async storage');
+         console.error('Error saving creatine notifications to async storage');
       }
    }
 
-   static async getCreatineNotificationId(): Promise<string | null> {
+   static async getCreatineNotifications(): Promise<ScheduledNotification[]> {
       try {
-         return await AsyncStorage.getItem(STORAGE_KEYS.CREATINE_NOTIFICATION_ID);
+         const stored = await AsyncStorage.getItem(STORAGE_KEYS.CREATINE_NOTIFICATIONS);
+         return stored ? JSON.parse(stored) : [];
       } catch (error) {
-         console.error('Error getting creatine notification id from async storage');
-         return null;
+         console.error('Error getting creatine notifications from async storage');
+         return [];
       }
    }
 
-   static async clearCreatineNotificationId(): Promise<void> {
+   static async clearCreatineNotifications(): Promise<void> {
       try {
-         await AsyncStorage.removeItem(STORAGE_KEYS.CREATINE_NOTIFICATION_ID);
+         await AsyncStorage.removeItem(STORAGE_KEYS.CREATINE_NOTIFICATIONS);
       } catch (error) {
-         console.error('Error removing creatine notification from async storage');
+         console.error('Error removing creatine notifications from async storage');
       }
    }
 
@@ -97,18 +105,140 @@ export class NotificationService {
       }
    }
 
-   // actually cancelling the notifications + calling AsyncStorage helpers //
+   static async cancelAllCreatineNotifications(): Promise<void> {
+      try {
+         const notifications = await this.getCreatineNotifications();
+
+         for (const notification of notifications) {
+            await Notifications.cancelScheduledNotificationAsync(notification.id);
+         }
+
+         await this.clearCreatineNotifications();
+      } catch (error) {
+         console.error('Error cancelling creatine notifications:', error);
+      }
+   }
+
+   static async cancelTodaysCreatineNotification(): Promise<boolean> {
+      try {
+         const notifications = await this.getCreatineNotifications();
+         const today = new Date().toDateString();
+
+         const todayNotification = notifications.find((n) => n.date === today);
+
+         if (todayNotification) {
+            await Notifications.cancelScheduledNotificationAsync(todayNotification.id);
+
+            // Remove from stored list
+            const updated = notifications.filter((n) => n.id !== todayNotification.id);
+            await this.saveCreatineNotifications(updated);
+
+            return true;
+         }
+
+         return false;
+      } catch (error) {
+         console.error("Error cancelling today's creatine notification:", error);
+         return false;
+      }
+   }
 
    static async cancelCreatineReminder(): Promise<void> {
-      try {
-         const id = await this.getCreatineNotificationId();
+      // Keep this method for backward compatibility
+      await this.cancelAllCreatineNotifications();
+   }
 
-         if (id) {
-            await Notifications.cancelScheduledNotificationAsync(id);
-            await this.clearCreatineNotificationId();
+   static async scheduleCreatineNotifications(
+      reminderTime: string
+   ): Promise<ScheduledNotification[]> {
+      try {
+         const [hours, minutes] = reminderTime.split(':').map(Number);
+         const notifications: ScheduledNotification[] = [];
+
+         // Clear existing notifications first
+         await this.cancelAllCreatineNotifications();
+
+         for (let i = 0; i < 7; i++) {
+            const scheduledDate = new Date();
+            scheduledDate.setDate(scheduledDate.getDate() + i);
+            scheduledDate.setHours(hours, minutes, 0, 0);
+
+            // Skip if time has already passed today
+            if (i === 0 && scheduledDate < new Date()) {
+               continue;
+            }
+
+            const id = await Notifications.scheduleNotificationAsync({
+               content: {
+                  title: '💪 Creatine Time!',
+                  body: 'Time for your daily creatine supplement',
+                  data: { type: 'creatine_reminder', date: scheduledDate.toDateString() }
+               },
+               trigger: {
+                  type: Notifications.SchedulableTriggerInputTypes.DATE,
+                  date: scheduledDate
+               }
+            });
+
+            notifications.push({
+               id,
+               date: scheduledDate.toDateString(),
+               timestamp: scheduledDate.getTime()
+            });
          }
+
+         await this.saveCreatineNotifications(notifications);
+         return notifications;
       } catch (error) {
-         console.error('Error cancelling creatine reminder:', error);
+         console.error('Error scheduling creatine notifications:', error);
+         return [];
+      }
+   }
+
+   static async maintainCreatineNotifications(reminderTime: string): Promise<void> {
+      try {
+         // Check if we did maintenance recently (throttle to once per day)
+         const lastMaintenance = await AsyncStorage.getItem(
+            STORAGE_KEYS.LAST_NOTIFICATION_MAINTENANCE
+         );
+         const today = new Date().toDateString();
+
+         if (lastMaintenance === today) {
+            return;
+         }
+
+         const notifications = await this.getCreatineNotifications();
+
+         // Filter out past notifications
+         const now = Date.now();
+         const activeNotifications = notifications.filter((n) => n.timestamp > now);
+
+         // Reschedule if we have fewer than 3 days left
+         if (activeNotifications.length < 3) {
+            await this.scheduleCreatineNotifications(reminderTime);
+         } else {
+            // Just update storage to remove past notifications
+            await this.saveCreatineNotifications(activeNotifications);
+         }
+
+         // Mark maintenance as done
+         await AsyncStorage.setItem(STORAGE_KEYS.LAST_NOTIFICATION_MAINTENANCE, today);
+      } catch (error) {
+         console.error('Creatine notification maintenance error:', error);
+      }
+   }
+
+   static async scheduleCreatineReminder(time?: string): Promise<void> {
+      try {
+         const hasPermission = await this.checkPermissions();
+         if (!hasPermission) {
+            return;
+         }
+
+         const reminderTime = time || '23:05';
+         await this.scheduleCreatineNotifications(reminderTime);
+      } catch (error) {
+         console.error('Error scheduling creatine reminder:', error);
       }
    }
 
@@ -121,41 +251,6 @@ export class NotificationService {
          }
       } catch (error) {
          console.error('Error cancelling water notifications');
-      }
-   }
-
-   // scheduling reminders //
-
-   static async scheduleCreatineReminder(time?: string): Promise<void> {
-      try {
-         const hasPermission = await this.checkPermissions();
-         if (!hasPermission) {
-            return;
-         }
-
-         const reminderTime = time || '23:05';
-
-         await this.cancelCreatineReminder();
-
-         const [hours, minutes] = reminderTime.split(':').map(Number);
-         const scheduledDate = new Date();
-         scheduledDate.setHours(hours, minutes, 0, 0);
-
-         const id = await Notifications.scheduleNotificationAsync({
-            content: {
-               title: '💪 Creatine Time!',
-               body: 'Time for your daily creatine supplement'
-            },
-            trigger: {
-               type: Notifications.SchedulableTriggerInputTypes.DAILY,
-               hour: scheduledDate.getHours(),
-               minute: scheduledDate.getMinutes()
-            }
-         });
-
-         await this.saveCreatineNotificationId(id);
-      } catch (error) {
-         console.error('Error scheduling creatine reminder:', error);
       }
    }
 
@@ -196,18 +291,22 @@ export class NotificationService {
       }
    }
 
-   // initialization functions //
-
+   // Initialization and cleanup //
    static async cleanupOrphanedNotifications(): Promise<void> {
       try {
          const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
          const scheduledIds = scheduledNotifications.map((n) => n.identifier);
 
-         const creatineId = await this.getCreatineNotificationId();
-         if (creatineId && !scheduledIds.includes(creatineId)) {
-            await this.clearCreatineNotificationId();
+         // Clean up creatine notifications
+         const creatineNotifications = await this.getCreatineNotifications();
+         const validCreatineNotifications = creatineNotifications.filter((n) =>
+            scheduledIds.includes(n.id)
+         );
+         if (validCreatineNotifications.length !== creatineNotifications.length) {
+            await this.saveCreatineNotifications(validCreatineNotifications);
          }
 
+         // Clean up water notifications
          const waterIds = await this.getWaterNotificationIds();
          const validWaterIds = waterIds.filter((id) => scheduledIds.includes(id));
          if (validWaterIds.length !== waterIds.length) {
@@ -228,19 +327,33 @@ export class NotificationService {
             }
             return { showReminderTimeModal: false };
          } else {
-            // Clean up any orphaned notifications (IDs stored but notification doesn't exist)
             await this.cleanupOrphanedNotifications();
 
             // if user's creatineReminderTIme is still null but we have permission, show the modal
             const creatineReminderTime = store.getState().settings.creatine_reminder_time;
             if (creatineReminderTime === null) {
                return { showReminderTimeModal: true };
+            } else {
+               // Maintain notifications on app startup
+               await this.maintainCreatineNotifications(creatineReminderTime);
             }
+
             return { showReminderTimeModal: false };
          }
       } catch (error) {
          console.error('Error initializing notification service:', error);
          return { showReminderTimeModal: false };
+      }
+   }
+
+   static async onCreatineGoalCompleted(): Promise<void> {
+      try {
+         const cancelled = await this.cancelTodaysCreatineNotification();
+         if (cancelled) {
+            console.log("successfully cancelled today's creatine reminder");
+         }
+      } catch (error) {
+         console.error('Error handling creatine goal completion:', error);
       }
    }
 }

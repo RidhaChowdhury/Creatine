@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
 import { Keyboard, Platform, View } from 'react-native';
 import {
    Actionsheet,
@@ -26,8 +27,14 @@ import {
 } from '@/components/ui/select';
 import { Text } from '@/components/ui/text';
 import { ChevronDownIcon } from '@/components/ui/icon';
-import { useAppDispatch } from '@/store/hooks';
-import { addCreatineLog } from '@/features/intake/intakeSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+   addCreatineLog,
+   selectCreatineStatus,
+   selectDailyCreatineTotal,
+} from '@/features/intake/intakeSlice';
+import { selectCreatineGoal, selectSettingsStatus } from '@/features/settings/settingsSlice';
+import { NotificationService } from '@/lib/notifications';
 
 const CREATINE_FORMS = ['Monohydrate', 'HCL', 'Micronized'] as const;
 type CreatineForm = (typeof CREATINE_FORMS)[number];
@@ -43,9 +50,28 @@ export const CreatineLogActionsheet: React.FC<CreatineLogActionsheetProps> = ({
 }) => {
    const dispatch = useAppDispatch();
 
+   const currentCreatineAmount = useAppSelector(selectDailyCreatineTotal);
+   const creatineGoal = useAppSelector(selectCreatineGoal);
+   const creatineStatus = useAppSelector(selectCreatineStatus);
+   const settingsStatus = useAppSelector(selectSettingsStatus);
+
    const [grams, setGrams] = useState<string>('');
    const [form, setForm] = useState<CreatineForm>('Monohydrate');
    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+   useEffect(() => {
+      if (
+         currentCreatineAmount >= creatineGoal &&
+         creatineStatus === 'succeeded' &&
+         settingsStatus === 'succeeded'
+      ) {
+         (async () => {
+            await NotificationService.onCreatineGoalCompleted();
+         })();
+      }
+      // here, we could also handle cases where a user deletes a creatine log that had previously met their goal
+      // and canceled noti, but now puts them under goal... maybe we should reschedule?
+   }, [currentCreatineAmount, creatineGoal, creatineStatus, settingsStatus]);
 
    useEffect(() => {
       const showSubscription = Keyboard.addListener(
