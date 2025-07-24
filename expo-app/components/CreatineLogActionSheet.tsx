@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
 import { Keyboard, Platform, View } from 'react-native';
 import {
    Actionsheet,
