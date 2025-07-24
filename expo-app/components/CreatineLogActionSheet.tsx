@@ -30,7 +30,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
    addCreatineLog,
    selectCreatineStatus,
-   selectDailyCreatineTotal,
+   selectDailyCreatineTotal
 } from '@/features/intake/intakeSlice';
 import { selectCreatineGoal, selectSettingsStatus } from '@/features/settings/settingsSlice';
 import { NotificationService } from '@/lib/notifications';
