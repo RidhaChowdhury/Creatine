@@ -201,7 +201,7 @@ const settingsSlice = createSlice({
          })
          .addCase(updateSettings.rejected, (state, action) => {
             state.status = 'failed';
-            state.error = action.error.message || 'Falied to update settings';
+            state.error = action.error.message || 'Failed to update settings';
          })
 
          .addCase(addSettings.pending, (state) => {
