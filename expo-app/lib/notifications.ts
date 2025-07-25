@@ -246,8 +246,8 @@ export class NotificationService {
          const ids = await this.getWaterNotificationIds();
          for (const id of ids) {
             await Notifications.cancelScheduledNotificationAsync(id);
-            await this.clearWaterNotificationIds();
          }
+         await this.clearWaterNotificationIds();
       } catch (error) {
          console.error('Error cancelling water notifications');
       }
