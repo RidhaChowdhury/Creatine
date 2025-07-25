@@ -7,16 +7,16 @@ import { selectDrinkUnit, selectSupplementUnit } from '../settings/settingsSlice
 const OZ_TO_ML = 29.5735;
 
 function ozToMl(oz: number) {
-   return +(oz * OZ_TO_ML).toFixed(2);
+   return oz * OZ_TO_ML;
 }
 
 function mlToOz(ml: number) {
-   return +(ml / OZ_TO_ML).toFixed(2);
+   return ml / OZ_TO_ML;
 }
 
 // rn only need oz and ml, but putting this logic in separate function in case we expand in future
 function convertToDrinkUnit(amount: number, unit: string, drinkUnit: string) {
-   if (unit === drinkUnit) return +amount.toFixed(2);
+   if (unit === drinkUnit) return amount;
    return unit === 'oz' ? ozToMl(amount) : mlToOz(amount);
 }
 
@@ -425,14 +425,15 @@ export const selectDailyWaterTotal = createSelector(
    [selectDrinkLogs, selectDrinkUnit],
    (logs, drinkUnit) => {
       const today = getTodayDate();
-      return logs
+      return +logs
          .filter((log) => log.consumed_at.startsWith(today))
          .reduce((sum, log) => {
             const amountInTargetUnit = convertToDrinkUnit(log.amount, log.unit, drinkUnit);
             // TODO, add hyrdration factors
             const factor = 1.0;
             return sum + amountInTargetUnit * factor;
-         }, 0);
+         }, 0)
+         .toFixed(2);
    }
 );
 
