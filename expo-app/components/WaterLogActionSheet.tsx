@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import { useAppDispatch } from '@/store/hooks';
 import { addDrinkLog } from '@/features/intake/intakeSlice';
 import { DRINK_TYPES } from '@/lib/constants';
+import { NotificationService } from '@/lib/notifications';
 
 type DrinkType = (typeof DRINK_TYPES)[number];
 
@@ -141,6 +142,7 @@ export const WaterLogActionsheet: React.FC<WaterLogActionsheetProps> = ({
                      onPress={async () => {
                         if (amount) {
                            dispatch(addDrinkLog({ amount: Number(amount), consumable: drinkType }));
+                           await NotificationService.scheduleWaterReminders();
                            Keyboard.dismiss();
                            handleClose();
                         }

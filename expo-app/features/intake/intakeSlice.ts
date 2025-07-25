@@ -45,14 +45,16 @@ type IntakeLog = {
 type IntakeState = {
    drinkLogs: IntakeLog[];
    creatineLogs: IntakeLog[];
-   status: 'idle' | 'loading' | 'succeeded' | 'failed';
+   drinkStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+   creatineStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
    error: string | null;
 };
 
 const initialState: IntakeState = {
    drinkLogs: [],
    creatineLogs: [],
-   status: 'idle',
+   drinkStatus: 'idle',
+   creatineStatus: 'idle',
    error: null
 };
 
@@ -290,7 +292,8 @@ const intakeSlice = createSlice({
       resetIntakeState: (state) => {
          state.drinkLogs = [];
          state.creatineLogs = [];
-         state.status = 'idle';
+         state.drinkStatus = 'idle';
+         state.creatineStatus = 'idle';
          state.error = null;
       }
    },
@@ -298,57 +301,57 @@ const intakeSlice = createSlice({
       builder
          // Fetch drink logs
          .addCase(fetchDrinkLogs.pending, (state) => {
-            state.status = 'loading';
+            state.drinkStatus = 'loading';
             state.error = null;
          })
          .addCase(fetchDrinkLogs.fulfilled, (state, action) => {
-            state.status = 'succeeded';
+            state.drinkStatus = 'succeeded';
             state.drinkLogs = action.payload;
          })
          .addCase(fetchDrinkLogs.rejected, (state, action) => {
-            state.status = 'failed';
+            state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to fetch drink logs';
          })
 
          // Fetch creatine logs
          .addCase(fetchCreatineLogs.pending, (state) => {
-            state.status = 'loading';
+            state.creatineStatus = 'loading';
             state.error = null;
          })
          .addCase(fetchCreatineLogs.fulfilled, (state, action) => {
-            state.status = 'succeeded';
+            state.creatineStatus = 'succeeded';
             state.creatineLogs = action.payload;
          })
          .addCase(fetchCreatineLogs.rejected, (state, action) => {
-            state.status = 'failed';
+            state.creatineStatus = 'failed';
             state.error = action.error.message || 'Failed to fetch creatine logs';
          })
 
          // Add drink log
          .addCase(addDrinkLog.pending, (state) => {
-            state.status = 'loading';
+            state.drinkStatus = 'loading';
             state.error = null;
          })
          .addCase(addDrinkLog.fulfilled, (state, action) => {
-            state.status = 'succeeded';
+            state.drinkStatus = 'succeeded';
             state.drinkLogs.unshift(action.payload);
          })
          .addCase(addDrinkLog.rejected, (state, action) => {
-            state.status = 'failed';
+            state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to add drink log';
          })
 
          // Add creatine log
          .addCase(addCreatineLog.pending, (state) => {
-            state.status = 'loading';
+            state.creatineStatus = 'loading';
             state.error = null;
          })
          .addCase(addCreatineLog.fulfilled, (state, action) => {
-            state.status = 'succeeded';
+            state.creatineStatus = 'succeeded';
             state.creatineLogs.unshift(action.payload);
          })
          .addCase(addCreatineLog.rejected, (state, action) => {
-            state.status = 'failed';
+            state.creatineStatus = 'failed';
             state.error = action.error.message || 'Failed to add creatine log';
          })
 
@@ -368,9 +371,12 @@ const intakeSlice = createSlice({
                   state.creatineLogs[index] = updatedLog;
                }
             }
+            state.creatineStatus = 'succeeded';
+            state.drinkStatus = 'succeeded';
          })
          .addCase(updateIntakeLog.rejected, (state, action) => {
-            state.status = 'failed';
+            state.creatineStatus = 'failed';
+            state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to update intake log';
          })
 
@@ -383,9 +389,12 @@ const intakeSlice = createSlice({
             } else if (consumable === 'creatine') {
                state.creatineLogs = state.creatineLogs.filter((log) => log.id !== id);
             }
+            state.creatineStatus = 'succeeded';
+            state.drinkStatus = 'succeeded';
          })
          .addCase(deleteIntakeLog.rejected, (state, action) => {
-            state.status = 'failed';
+            state.creatineStatus = 'failed';
+            state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to delete intake log';
          });
    }
@@ -396,7 +405,8 @@ export const { resetIntakeState } = intakeSlice.actions;
 // Selectors
 export const selectDrinkLogs = (state: RootState) => state.intake.drinkLogs;
 export const selectCreatineLogs = (state: RootState) => state.intake.creatineLogs;
-export const selectIntakeStatus = (state: RootState) => state.intake.status;
+export const selectDrinkStatus = (state: RootState) => state.intake.drinkStatus;
+export const selectCreatineStatus = (state: RootState) => state.intake.creatineStatus;
 export const selectIntakeError = (state: RootState) => state.intake.error;
 
 export const selectTodayDrinkLogs = (state: RootState) => {

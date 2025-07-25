@@ -35,7 +35,13 @@
             }
          ],
          "expo-font",
-         "expo-web-browser"
+         "expo-web-browser",
+         [
+            "expo-notifications",
+            {
+               "sounds": ["./water-drop.wav"]
+            }
+         ]
       ],
       "experiments": {
          "typedRoutes": true
