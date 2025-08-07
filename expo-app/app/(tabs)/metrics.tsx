@@ -14,9 +14,11 @@ import { WaterHistory } from '@/components/WaterHistory';
 import { Button } from '@/components/ui/button';
 import { GlassWater } from 'lucide-react-native';
 import CreatineScoopIcon from '@/components/CreatineScoop';
+import { HistoryChart} from '@/components/IntakeLineChart'
 
 const Metrics = () => {
    const [openPage, setOpenPage] = useState<'creatine' | 'water'>('creatine');
+   const [selectedMetric, setSelectedMetric] = useState<'hydration' | 'creatine'>('hydration');
    return (
       <SafeAreaView className='bg-background-0 h-full'>
          <ScrollView
@@ -29,10 +31,11 @@ const Metrics = () => {
                      size={32}
                   />
                   <Text className='text-[20px] font-semibold pl-[7]'>
-                     {openPage === 'creatine' ? 'Creatine' : 'Water'} History
+                     {/* {openPage === 'creatine' ? 'Creatine' : 'Water'} History */}
+                     Water History
                   </Text>
                </View>
-               <Button
+               {/* <Button
                   className='bg-primary-0 rounded-full px-4 py-4 mt-3 w-12 h-12'
                   onPress={() => setOpenPage(openPage === 'creatine' ? 'water' : 'creatine')}>
                   {openPage === 'creatine' ? (
@@ -46,10 +49,14 @@ const Metrics = () => {
                         size={25}
                      />
                   )}
-               </Button>
+               </Button> */}
             </View>
             <View className='mb-4'>
-               {openPage === 'creatine' ? <CreatineHistory /> : <WaterHistory />}
+               {/* {openPage === 'creatine' ? <CreatineHistory /> : <WaterHistory />} */}
+               <HistoryChart
+                  metric={selectedMetric}
+                  days={7}
+               />
             </View>
          </ScrollView>
       </SafeAreaView>
