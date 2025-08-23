@@ -15,11 +15,12 @@ type ChartDataPoint = {
 type Props = {
    data: ChartDataPoint[];
    lineColor: string;
+   yMax?: number;
+   yTickCount?: number;
    yAxisTickValues?: number[];
    yAxisTickCount?: number;
    height?: number;
    title: string;
-   // optional range controls baked into the chart
    rangeOptions?: number[];
    currentRange?: number;
    onRangeChange?: (d: number) => void;
@@ -29,8 +30,10 @@ type Props = {
 export const HistoryChart = ({
    data,
    lineColor,
+   yMax,
+   yTickCount,
    yAxisTickValues,
-   yAxisTickCount = 5,
+   yAxisTickCount,
    height = 200,
    title,
    rangeOptions,
@@ -50,6 +53,22 @@ export const HistoryChart = ({
       const desired = currentRange ? (tickMap[currentRange] ?? defaultTicks) : defaultTicks;
       return Math.min(data.length, desired);
    }, [currentRange, data.length]);
+
+   // Auto-compute Y ticks if not explicitly provided
+   const computedYTickValues = React.useMemo(() => {
+      if (Array.isArray(yAxisTickValues) && yAxisTickValues.length > 0) return yAxisTickValues;
+      const count = yTickCount ?? yAxisTickCount ?? 5;
+      const max = yMax ?? 100;
+      const n = Math.max(2, count);
+      const step = max / (n - 1);
+      return Array.from({ length: n }, (_, i) => Math.round(step * i));
+   }, [yAxisTickValues, yTickCount, yAxisTickCount, yMax]);
+
+   const computedYTickCount = React.useMemo(() => {
+      if (Array.isArray(yAxisTickValues) && yAxisTickValues.length > 0)
+         return yAxisTickValues.length;
+      return yTickCount ?? yAxisTickCount ?? 5;
+   }, [yAxisTickValues, yTickCount, yAxisTickCount]);
 
    return (
       <View style={{ height, position: 'relative' }}>
@@ -99,6 +118,7 @@ export const HistoryChart = ({
             xKey='day'
             yKeys={['amount']}
             padding={{ top: 15, bottom: 0, left: 0, right: 15 }}
+            domainPadding={{ left: 10, right: 10 }}
             xAxis={{
                font: font,
                tickCount: computedTickCount,
@@ -111,8 +131,8 @@ export const HistoryChart = ({
             yAxis={[
                {
                   font: font,
-                  tickCount: yAxisTickCount,
-                  tickValues: yAxisTickValues,
+                  tickCount: computedYTickCount,
+                  tickValues: computedYTickValues,
                   lineColor: '#333',
                   lineWidth: 1,
                   labelColor: '#333',

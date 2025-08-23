@@ -22,6 +22,7 @@ import {
    selectSupplementUnit
 } from '@/features/settings/settingsSlice';
 import CombinedHeatCalendar, { CombinedDayData } from './CombinedHeatCalendar';
+import { CirclePlus } from 'lucide-react-native';
 
 interface IntakeLog {
    id: string;
@@ -130,7 +131,15 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
 
    const openNew = (mode: 'water' | 'creatine') => {
       setSheetMode(mode);
-      setSheetInitial(undefined);
+      try {
+         // Pre-populate with selected day at 12:00 local time
+         const [y, m, d] = selectedDay.split('-').map((n) => Number(n));
+         const noon = new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0);
+         setSheetInitial({ consumed_at: noon.toISOString() });
+      } catch {
+         // Fallback to now
+         setSheetInitial({ consumed_at: new Date().toISOString() });
+      }
       setSheetOpen(true);
    };
 
@@ -203,95 +212,93 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                      selectedDate={selectedDay}
                      onDayPress={(d) => setSelectedDay(d)}
                   />
-                  <View className='p-4'>
-                     <View className='flex-row items-center justify-between'>
-                        <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
 
-                        <View className='flex-row items-center space-x-2'>
-                           <GlassWater
-                              color='#9ca3af'
-                              size={18}
-                           />
-                           <Text className='text-sm'>
-                              {selectedDayData?.waterAmount ?? 0} / {waterGoal}{' '}
-                              {drinkUnit}
-                           </Text>
-                        </View>
+                  <View className='px-4 pb-4'>
+                     <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
+                     <View className='flex-row items-center justify-between gap-2 mb-2'>
+                        <Text className='text-md font-semibold'>Creatine for the day</Text>
 
-                        <View className='flex-row items-center space-x-2'>
-                           <CreatineScoopIcon
-                              color='#9ca3af'
-                              size={18}
-                           />
-                           <Text className='text-sm'>
-                              {selectedDayData?.creatineAmount ?? 0} /{' '} 
-                              {creatineGoal} {supplementUnit}
-                           </Text>
-                        </View>
-                     </View>
-                  </View>
-               </Box>
-
-               <Box className='bg-primary-0 rounded-[15px] p-4 mt-4'>
-                  <View className='flex-row items-center justify-between'>
-                     <Text className='text-md font-semibold mb-2'>Creatine Entries</Text>
-                     <TouchableOpacity onPress={() => openNew('creatine')}>
-                        <Text className='text-sm text-primary-400'>Add</Text>
-                     </TouchableOpacity>
-                  </View>
-                  {dayCreatineLogs.length === 0 && (
-                     <Text className='text-sm mb-2'>No creatine logs for this day...</Text>
-                  )}
-                  {dayCreatineLogs.map((log) => (
-                     <TouchableOpacity
-                        key={log.id}
-                        onPress={() => openEdit('creatine', log)}>
-                        <Box className='p-3 rounded-lg mb-2 bg-background-100'>
-                           <View className='flex-row justify-between'>
-                              <Text>
-                                 {convertCreatine(log.amount, log.unit, supplementUnit)}{' '}
+                        <View className='flex flex-row gap-2'>
+                           <View className='flex-row items-center space-x-2'>
+                              <Text className='text-sm'>
+                                 {selectedDayData?.creatineAmount ?? 0} / {creatineGoal}{' '}
                                  {supplementUnit}
                               </Text>
-                              <Text>
-                                 {new Date(log.consumed_at).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                 })}
-                              </Text>
                            </View>
-                        </Box>
-                     </TouchableOpacity>
-                  ))}
 
-                  <View className='flex-row items-center justify-between mt-4'>
-                     <Text className='text-md font-semibold mb-2'>Water Entries</Text>
-                     <TouchableOpacity onPress={() => openNew('water')}>
-                        <Text className='text-sm text-primary-400'>Add</Text>
-                     </TouchableOpacity>
-                  </View>
-                  {dayWaterLogs.length === 0 && (
-                     <Text className='text-sm mb-2'>No water logs for this day...</Text>
-                  )}
-                  {dayWaterLogs.map((log) => (
-                     <TouchableOpacity
-                        key={log.id}
-                        onPress={() => openEdit('water', log)}>
-                        <Box className='p-3 rounded-lg bg-background-100 mb-2'>
-                           <View className='flex-row justify-between'>
-                              <Text>
-                                 {convertWater(log.amount, log.unit, drinkUnit)} {drinkUnit}
-                              </Text>
-                              <Text>
-                                 {new Date(log.consumed_at).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                 })}
+                           <TouchableOpacity onPress={() => openNew('creatine')}>
+                              <CirclePlus
+                                 color='#ffffff'
+                                 size={18}
+                              />
+                           </TouchableOpacity>
+                        </View>
+                     </View>
+                     {dayCreatineLogs.length === 0 && (
+                        <Text className='text-sm mb-2'>No creatine logs for this day...</Text>
+                     )}
+                     {dayCreatineLogs.map((log) => (
+                        <TouchableOpacity
+                           key={log.id}
+                           onPress={() => openEdit('creatine', log)}>
+                           <Box className='p-3 rounded-lg mb-2 bg-background-100'>
+                              <View className='flex-row justify-between'>
+                                 <Text>
+                                    {convertCreatine(log.amount, log.unit, supplementUnit)}{' '}
+                                    {supplementUnit}
+                                 </Text>
+                                 <Text>
+                                    {new Date(log.consumed_at).toLocaleTimeString([], {
+                                       hour: '2-digit',
+                                       minute: '2-digit'
+                                    })}
+                                 </Text>
+                              </View>
+                           </Box>
+                        </TouchableOpacity>
+                     ))}
+
+                     <View className='flex-row items-center justify-between gap-2 mt-4 mb-2'>
+                        <Text className='text-md font-semibold'>Water for the day</Text>
+                        <View className='flex flex-row gap-2'>
+                           <View className='flex-row items-center space-x-2'>
+                              <Text className='text-sm'>
+                                 {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
                               </Text>
                            </View>
-                        </Box>
-                     </TouchableOpacity>
-                  ))}
+                           <TouchableOpacity onPress={() => openNew('water')}>
+                              <CirclePlus
+                                 color='#ffffff'
+                                 size={18}
+                              />
+                           </TouchableOpacity>
+                        </View>
+                     </View>
+                     {dayWaterLogs.length === 0 && (
+                        <Text className='text-sm mb-2'>No water logs for this day...</Text>
+                     )}
+                     {dayWaterLogs.map((log) => (
+                        <TouchableOpacity
+                           key={log.id}
+                           onPress={() => openEdit('water', log)}>
+                           <Box className='p-3 rounded-lg bg-background-100 mb-2'>
+                              <View className='flex-row justify-between'>
+                                 <Text>
+                                    {convertWater(log.amount, log.unit, drinkUnit)} {drinkUnit}
+                                 </Text>
+                                 <Text>
+                                    {new Date(log.consumed_at).toLocaleTimeString([], {
+                                       hour: '2-digit',
+                                       minute: '2-digit'
+                                    })}
+                                 </Text>
+                              </View>
+                           </Box>
+                        </TouchableOpacity>
+                     ))}
+                  </View>
                </Box>
+
                <LogActionSheet
                   isOpen={sheetOpen}
                   mode={sheetMode}

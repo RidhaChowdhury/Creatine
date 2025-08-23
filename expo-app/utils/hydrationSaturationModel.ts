@@ -75,14 +75,3 @@ export const calculateDaysTillOptimalHydration = (
 
    return days > 14 ? 14 : days;
 };
-
-// Helper function to convert between units if needed
-export const convertToOunces = (amount: number, unit: 'ml' | 'cup' | 'liter'): number => {
-   const conversions = {
-      ml: 0.033814,
-      cup: 8,
-      liter: 33.814
-   };
-
-   return amount * conversions[unit];
-};

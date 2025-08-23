@@ -1,22 +1,18 @@
 import { View, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import React, { useState, useEffect, useContext } from 'react';
 import { Text } from '@/components/ui/text';
-import { Box } from '@/components/ui/box';
-import { CalendarDays, ChartPie, Flame } from 'lucide-react-native';
-import { VStack } from '@/components/ui/vstack';
-import HeatCalendar from '@/components/HeatCalendar';
-import { supabase } from '@/lib/supabase';
-import { Pie, PolarChart } from 'victory-native';
-import { Divider } from '@/components/ui/divider';
+import { CalendarDays } from 'lucide-react-native';
 import CombinedHistory from '@/components/CombinedHistory';
-import { Button, ButtonText } from '@/components/ui/button';
-import { GlassWater } from 'lucide-react-native';
-import CreatineScoopIcon from '@/components/CreatineScoop';
 import { HistoryChart } from '@/components/IntakeLineChart';
 import { calculateSaturation } from '@/utils/creatineSaturationModel';
 import { calculateHydrationSaturation, UserProfile } from '@/utils/hydrationSaturationModel';
 import { getAllMetrics } from '@/utils/consumptionMetrics';
-
+import { calculatePerformanceMetric } from '@/utils/performanceMetricModel';
+import {
+   computeHydrationBucketsForDate,
+   computeAverageHydrationBuckets
+} from '@/utils/hydrationHabitsMetrics';
+import SimpleBarChart from '@/components/SimpleBarChart';
 import { useSelector } from 'react-redux';
 import { selectWaterLogs, selectCreatineLogs } from '@/features/intake/intakeSlice';
 import { RootState } from '@/store/store';
@@ -101,20 +97,18 @@ const Metrics = () => {
       day: hydrationBaseEntries[idx].date,
       amount: Math.round(f * 100)
    }));
+
    const hydrationSeries = hydrationFullSeries.slice(-hydrationSaturationRange);
-   const hydrationTickValues = [0, 25, 50, 75, 100];
    const hydrationLineColor = '#3B82F6';
 
-   const saturationTickValues = [0, 25, 50, 75, 100];
    const saturationLineColor = '#805AD5';
+   const performanceLineColor = '#F59E0B'; // amber-500
    const waterLineColor = '#4299E1';
    const creatineLineColor = '#48BB78';
+   const habitsTodayColor = '#22C55E';
+   const habitsAvgColor = '#A78BFA';
 
-   const tickCount = 5;
-   const waterStep = 25;
-   const creatineStep = 2;
-   const waterTickValues = Array.from({ length: tickCount }, (_, i) => waterStep * i);
-   const creatineTickValues = Array.from({ length: tickCount }, (_, i) => creatineStep * i);
+   const defaultYTicks = 5;
 
    const rangeOptions = [7, 30, 90];
 
@@ -126,6 +120,32 @@ const Metrics = () => {
       periodDays: 30,
       windowDays: 30
    });
+
+   // --- Composite Performance Metric (aligned to 90-day saturation series) ---
+   const performanceFractions = calculatePerformanceMetric(
+      saturationFractions,
+      hydrationFractions,
+      { mode: 'arithmetic', weights: { creatine: 0.6, hydration: 0.4 } }
+   );
+   // Map to percentages with the same date alignment as the tail of 90-day base series
+   const perfFullSeries = performanceFractions.map((p, idx) => ({
+      day: hydrationBaseEntries.slice(-performanceFractions.length)[idx].date,
+      amount: Math.round(p * 100)
+   }));
+   const [performanceRange, setPerformanceRange] = useState<number>(7);
+   const performanceSeries = perfFullSeries.slice(-performanceRange);
+
+   // --- Hydration Habits (bucketed by time of day) ---
+   const todayBuckets = computeHydrationBucketsForDate(waterLogs as any);
+   const avgBuckets = computeAverageHydrationBuckets(waterLogs as any, 30);
+   const habitsTodayData = todayBuckets.labels.map((label, i) => ({
+      label,
+      value: todayBuckets.values[i]
+   }));
+   const habitsAvgData = avgBuckets.labels.map((label, i) => ({
+      label,
+      value: avgBuckets.values[i]
+   }));
 
    const metricCards: { label: string; value: string }[] = [
       {
@@ -207,8 +227,8 @@ const Metrics = () => {
                <HistoryChart
                   data={waterChartData}
                   lineColor={waterLineColor}
-                  yAxisTickValues={waterTickValues}
-                  yAxisTickCount={tickCount}
+                  yMax={100}
+                  yTickCount={defaultYTicks}
                   title={'Water Intake'}
                   rangeOptions={rangeOptions}
                   currentRange={waterRange}
@@ -220,8 +240,8 @@ const Metrics = () => {
                <HistoryChart
                   data={creatineChartData}
                   lineColor={creatineLineColor}
-                  yAxisTickValues={creatineTickValues}
-                  yAxisTickCount={tickCount}
+                  yMax={5}
+                  yTickCount={3}
                   title={'Creatine Intake'}
                   rangeOptions={rangeOptions}
                   currentRange={creatineRange}
@@ -233,8 +253,8 @@ const Metrics = () => {
                <HistoryChart
                   data={hydrationSeries}
                   lineColor={hydrationLineColor}
-                  yAxisTickValues={hydrationTickValues}
-                  yAxisTickCount={hydrationTickValues.length}
+                  yMax={100}
+                  yTickCount={defaultYTicks}
                   title={'Hydration Saturation'}
                   rangeOptions={rangeOptions}
                   currentRange={hydrationSaturationRange}
@@ -246,13 +266,42 @@ const Metrics = () => {
                <HistoryChart
                   data={saturationSeries}
                   lineColor={saturationLineColor}
-                  yAxisTickValues={saturationTickValues}
-                  yAxisTickCount={saturationTickValues.length}
+                  yMax={100}
+                  yTickCount={defaultYTicks}
                   title={'Creatine Saturation'}
                   rangeOptions={rangeOptions}
                   currentRange={creatineSaturationRange}
                   onRangeChange={setCreatineSaturationRange}
                   height={200}
+               />
+            </View>
+            <View className='mb-8'>
+               <HistoryChart
+                  data={performanceSeries}
+                  lineColor={performanceLineColor}
+                  yMax={100}
+                  yTickCount={defaultYTicks}
+                  title={'Performance Metric'}
+                  rangeOptions={rangeOptions}
+                  currentRange={performanceRange}
+                  onRangeChange={setPerformanceRange}
+                  height={200}
+               />
+            </View>
+            <View className='mb-8'>
+               <SimpleBarChart
+                  title='Hydration Habits (Today)'
+                  data={habitsTodayData}
+                  color={habitsTodayColor}
+                  height={220}
+               />
+            </View>
+            <View className='mb-8'>
+               <SimpleBarChart
+                  title='Hydration Habits (Avg 30d)'
+                  data={habitsAvgData}
+                  color={habitsAvgColor}
+                  height={220}
                />
             </View>
          </ScrollView>
