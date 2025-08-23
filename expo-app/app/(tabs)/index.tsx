@@ -4,8 +4,8 @@ import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';
 import { GlassWater } from 'lucide-react-native';
 import CreatineScoopIcon from '@/components/CreatineScoop';
-import { WaterLogActionsheet } from '@/components/WaterLogActionSheet';
-import { CreatineLogActionsheet } from '@/components/CreatineLogActionSheet';
+import LogActionSheet from '@/components/LogActionSheet';
+import { addDrinkLog, addCreatineLog } from '@/features/intake/intakeSlice';
 import { HStack } from '@/components/ui/hstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { WaveBackground } from '@/components/WaveBackground';
@@ -38,6 +38,7 @@ const Today = () => {
 
    const [showWaterSheet, setShowWaterSheet] = useState(false);
    const [showCreatineSheet, setShowCreatineSheet] = useState(false);
+   const [sheetInitial, setSheetInitial] = useState<any>(undefined);
    const [animationKey, setAnimationKey] = useState(0);
    const [showModal, setShowModal] = useState(false);
    const [date, setDate] = useState(new Date());
@@ -142,7 +143,11 @@ const Today = () => {
                <Button
                   size='lg'
                   className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => setShowCreatineSheet(true)}>
+                  onPress={() => {
+                     // open creatine sheet with current time
+                     setSheetInitial({ consumed_at: new Date().toISOString() });
+                     setShowCreatineSheet(true);
+                  }}>
                   <CreatineScoopIcon
                      color={'white'}
                      size={50}
@@ -157,7 +162,11 @@ const Today = () => {
                <Button
                   size='lg'
                   className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => setShowWaterSheet(true)}>
+                  onPress={() => {
+                     // open water sheet with current time
+                     setSheetInitial({ consumed_at: new Date().toISOString() });
+                     setShowWaterSheet(true);
+                  }}>
                   <GlassWater
                      color={'white'}
                      size={32}
@@ -167,14 +176,44 @@ const Today = () => {
          </HStack>
 
          {/* Water Logging Action Sheet */}
-         <WaterLogActionsheet
-            showActionsheet={showWaterSheet}
-            handleClose={() => setShowWaterSheet(false)}
+         <LogActionSheet
+            isOpen={showWaterSheet}
+            mode='water'
+            initial={sheetInitial}
+            onClose={() => {
+               setShowWaterSheet(false);
+               setSheetInitial(undefined);
+            }}
+            onSubmit={async (payload) => {
+               // when logging from home, consumed_at should already be current
+               await dispatch(
+                  addDrinkLog({
+                     amount: payload.amount,
+                     consumable: 'water',
+                     unit: payload.unit,
+                     consumed_at: payload.consumed_at
+                  })
+               );
+            }}
          />
 
-         <CreatineLogActionsheet
-            showActionsheet={showCreatineSheet}
-            handleClose={() => setShowCreatineSheet(false)}
+         <LogActionSheet
+            isOpen={showCreatineSheet}
+            mode='creatine'
+            initial={sheetInitial}
+            onClose={() => {
+               setShowCreatineSheet(false);
+               setSheetInitial(undefined);
+            }}
+            onSubmit={async (payload) => {
+               await dispatch(
+                  addCreatineLog({
+                     amount: payload.amount,
+                     unit: payload.unit,
+                     consumed_at: payload.consumed_at
+                  })
+               );
+            }}
          />
 
          {/* Creatine reminder time modal */}
