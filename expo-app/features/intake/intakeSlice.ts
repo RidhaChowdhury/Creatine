@@ -221,9 +221,9 @@ export const addCreatineLog = createAsyncThunk<
 // Thunk to update intake log (works for both drinks and creatine)
 export const updateIntakeLog = createAsyncThunk<
    IntakeLog,
-   { id: string; amount: number; unit?: string },
+   { id: string; amount: number; unit?: string; consumed_at?: string },
    { state: RootState }
->('intake/updateIntakeLog', async ({ id, amount, unit }, thunkAPI) => {
+>('intake/updateIntakeLog', async ({ id, amount, unit, consumed_at }, thunkAPI) => {
    const state = thunkAPI.getState();
    const userId = state.auth.user?.id;
 
@@ -234,6 +234,9 @@ export const updateIntakeLog = createAsyncThunk<
    const updateData: any = { amount };
    if (unit) {
       updateData.unit = unit;
+   }
+   if (consumed_at) {
+      updateData.consumed_at = consumed_at;
    }
 
    const { data, error } = await supabase

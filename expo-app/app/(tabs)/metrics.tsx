@@ -211,7 +211,7 @@ const Metrics = () => {
                      <View
                         key={m.label}
                         className='w-1/2 px-2 mb-4'>
-                        <View className='bg-primary-0 rounded-[15px] p-3 h-24 justify-between'>
+                        <View className='bg-primary-0 rounded-lg p-3 h-24 justify-between'>
                            <Text
                               className='text-xs text-typography-500'
                               numberOfLines={2}>

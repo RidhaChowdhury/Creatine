@@ -3,8 +3,8 @@ import React, { useState, useEffect, useCallback, useContext, ChangeEvent } from
 import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';
 import { GlassWater } from 'lucide-react-native';
-import CreatineScoopIcon from '@/components/CreatineScoop';
-import LogActionSheet from '@/components/LogActionSheet';
+// import CreatineScoopIcon from '@/components/CreatineScoop';
+import IntakeDrawer from '@/components/IntakeDrawer';
 import { addDrinkLog, addCreatineLog } from '@/features/intake/intakeSlice';
 import { HStack } from '@/components/ui/hstack';
 import { Button, ButtonText } from '@/components/ui/button';
@@ -37,7 +37,6 @@ const Today = () => {
    const supplementUnit = useAppSelector(selectSupplementUnit);
 
    const [showWaterSheet, setShowWaterSheet] = useState(false);
-   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
    const [sheetInitial, setSheetInitial] = useState<any>(undefined);
    const [animationKey, setAnimationKey] = useState(0);
    const [showModal, setShowModal] = useState(false);
@@ -136,25 +135,6 @@ const Today = () => {
          <HStack
             className='absolute bottom-4 right-4'
             space='xl'>
-            {/* Creatine Button (left) */}
-            <Animated.View
-               key={animationKey}
-               entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}>
-               <Button
-                  size='lg'
-                  className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => {
-                     // open creatine sheet with current time
-                     setSheetInitial({ consumed_at: new Date().toISOString() });
-                     setShowCreatineSheet(true);
-                  }}>
-                  <CreatineScoopIcon
-                     color={'white'}
-                     size={50}
-                  />
-               </Button>
-            </Animated.View>
-
             {/* Water Button (right) */}
             <Animated.View
                key={`water-${animationKey}`}
@@ -175,44 +155,13 @@ const Today = () => {
             </Animated.View>
          </HStack>
 
-         {/* Water Logging Action Sheet */}
-         <LogActionSheet
+         {/* Unified Intake Drawer (water-centric with optional creatine) */}
+         <IntakeDrawer
             isOpen={showWaterSheet}
-            mode='water'
             initial={sheetInitial}
             onClose={() => {
                setShowWaterSheet(false);
                setSheetInitial(undefined);
-            }}
-            onSubmit={async (payload) => {
-               // when logging from home, consumed_at should already be current
-               await dispatch(
-                  addDrinkLog({
-                     amount: payload.amount,
-                     consumable: 'water',
-                     unit: payload.unit,
-                     consumed_at: payload.consumed_at
-                  })
-               );
-            }}
-         />
-
-         <LogActionSheet
-            isOpen={showCreatineSheet}
-            mode='creatine'
-            initial={sheetInitial}
-            onClose={() => {
-               setShowCreatineSheet(false);
-               setSheetInitial(undefined);
-            }}
-            onSubmit={async (payload) => {
-               await dispatch(
-                  addCreatineLog({
-                     amount: payload.amount,
-                     unit: payload.unit,
-                     consumed_at: payload.consumed_at
-                  })
-               );
             }}
          />
 

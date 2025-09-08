@@ -6,14 +6,15 @@ import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import CreatineScoopIcon from './CreatineScoop';
 import { GlassWater } from 'lucide-react-native';
-import { useAppDispatch } from '@/store/hooks';
-import LogActionSheet, { LogInitial } from './LogActionSheet';
-import {
-   addDrinkLog,
-   addCreatineLog,
-   updateIntakeLog,
-   deleteIntakeLog
-} from '@/features/intake/intakeSlice';
+import IntakeDrawer from './IntakeDrawer';
+type LogInitial = {
+   id?: string;
+   amount?: number;
+   unit?: string;
+   consumable?: string;
+   consumed_at?: string;
+};
+// intake actions handled inside IntakeDrawer
 import { selectDrinkLogs, selectCreatineLogs } from '@/features/intake/intakeSlice';
 import {
    selectWaterGoal,
@@ -57,10 +58,10 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
 
    const [selectedDay, setSelectedDay] = React.useState(formatDate(new Date()));
    const [loading] = React.useState(false);
-   const dispatch = useAppDispatch();
+   // dispatch not required here; IntakeDrawer handles actions
 
    const [sheetOpen, setSheetOpen] = React.useState(false);
-   const [sheetMode, setSheetMode] = React.useState<'water' | 'creatine'>('water');
+   // unified water-centric drawer
    const [sheetInitial, setSheetInitial] = React.useState<LogInitial | undefined>(undefined);
 
    const calendarData: CombinedDayData[] = React.useMemo(() => {
@@ -119,7 +120,10 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
 
    const displaySelectedDay = React.useMemo(() => {
       try {
-         return new Date(selectedDay).toLocaleDateString(undefined, {
+         const [y, m, d] = selectedDay.split('-').map((n) => Number(n));
+         // Construct a local Date at midnight to avoid UTC shifting the day
+         const localDate = new Date(y || 1970, (m || 1) - 1, d || 1);
+         return localDate.toLocaleDateString(undefined, {
             month: 'long',
             day: 'numeric',
             year: 'numeric'
@@ -129,8 +133,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       }
    }, [selectedDay]);
 
-   const openNew = (mode: 'water' | 'creatine') => {
-      setSheetMode(mode);
+   const openNew = () => {
       try {
          // Pre-populate with selected day at 12:00 local time
          const [y, m, d] = selectedDay.split('-').map((n) => Number(n));
@@ -143,8 +146,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       setSheetOpen(true);
    };
 
-   const openEdit = (mode: 'water' | 'creatine', log: IntakeLog) => {
-      setSheetMode(mode);
+   const openEdit = (log: IntakeLog) => {
       setSheetInitial({
          id: log.id,
          amount: log.amount,
@@ -155,43 +157,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       setSheetOpen(true);
    };
 
-   const handleSubmit = async (payload: {
-      id?: string;
-      amount: number;
-      unit: string;
-      consumable: string;
-   }) => {
-      try {
-         if (payload.id) {
-            // update
-            await dispatch(
-               updateIntakeLog({ id: payload.id, amount: payload.amount, unit: payload.unit })
-            );
-         } else {
-            if (payload.consumable === 'creatine') {
-               await dispatch(addCreatineLog({ amount: payload.amount, unit: payload.unit }));
-            } else {
-               await dispatch(
-                  addDrinkLog({
-                     amount: payload.amount,
-                     consumable: payload.consumable as any,
-                     unit: payload.unit
-                  })
-               );
-            }
-         }
-      } catch (err) {
-         console.error('Error submitting log:', err);
-      }
-   };
-
-   const handleDelete = async (id: string) => {
-      try {
-         await dispatch(deleteIntakeLog(id));
-      } catch (err) {
-         console.error('Error deleting log:', err);
-      }
-   };
+   // Handlers now live inside IntakeDrawer
 
    return (
       <View>
@@ -214,25 +180,20 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                   />
 
                   <View className='px-4 pb-4'>
-                     <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
+                     <View className='flex flex-row justify-between items-center'>
+                        <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
+                        <TouchableOpacity onPress={() => openNew()}>
+                           <CirclePlus
+                              color='#ffffff'
+                              size={18}
+                           />
+                        </TouchableOpacity>
+                     </View>
                      <View className='flex-row items-center justify-between gap-2 mb-2'>
                         <Text className='text-md font-semibold'>Creatine for the day</Text>
-
-                        <View className='flex flex-row gap-2'>
-                           <View className='flex-row items-center space-x-2'>
-                              <Text className='text-sm'>
-                                 {selectedDayData?.creatineAmount ?? 0} / {creatineGoal}{' '}
-                                 {supplementUnit}
-                              </Text>
-                           </View>
-
-                           <TouchableOpacity onPress={() => openNew('creatine')}>
-                              <CirclePlus
-                                 color='#ffffff'
-                                 size={18}
-                              />
-                           </TouchableOpacity>
-                        </View>
+                        <Text className='text-sm'>
+                           {selectedDayData?.creatineAmount ?? 0} / {creatineGoal} {supplementUnit}
+                        </Text>
                      </View>
                      {dayCreatineLogs.length === 0 && (
                         <Text className='text-sm mb-2'>No creatine logs for this day...</Text>
@@ -240,7 +201,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                      {dayCreatineLogs.map((log) => (
                         <TouchableOpacity
                            key={log.id}
-                           onPress={() => openEdit('creatine', log)}>
+                           onPress={() => openEdit(log)}>
                            <Box className='p-3 rounded-lg mb-2 bg-background-100'>
                               <View className='flex-row justify-between'>
                                  <Text>
@@ -260,19 +221,9 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
 
                      <View className='flex-row items-center justify-between gap-2 mt-4 mb-2'>
                         <Text className='text-md font-semibold'>Water for the day</Text>
-                        <View className='flex flex-row gap-2'>
-                           <View className='flex-row items-center space-x-2'>
-                              <Text className='text-sm'>
-                                 {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
-                              </Text>
-                           </View>
-                           <TouchableOpacity onPress={() => openNew('water')}>
-                              <CirclePlus
-                                 color='#ffffff'
-                                 size={18}
-                              />
-                           </TouchableOpacity>
-                        </View>
+                        <Text className='text-sm'>
+                           {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
+                        </Text>
                      </View>
                      {dayWaterLogs.length === 0 && (
                         <Text className='text-sm mb-2'>No water logs for this day...</Text>
@@ -280,7 +231,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                      {dayWaterLogs.map((log) => (
                         <TouchableOpacity
                            key={log.id}
-                           onPress={() => openEdit('water', log)}>
+                           onPress={() => openEdit(log)}>
                            <Box className='p-3 rounded-lg bg-background-100 mb-2'>
                               <View className='flex-row justify-between'>
                                  <Text>
@@ -299,13 +250,10 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                   </View>
                </Box>
 
-               <LogActionSheet
+               <IntakeDrawer
                   isOpen={sheetOpen}
-                  mode={sheetMode}
                   initial={sheetInitial}
                   onClose={() => setSheetOpen(false)}
-                  onSubmit={handleSubmit}
-                  onDelete={handleDelete}
                />
             </VStack>
          )}
