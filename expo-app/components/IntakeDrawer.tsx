@@ -19,8 +19,9 @@ import {
    updateIntakeLog,
    deleteIntakeLog
 } from '@/features/intake/intakeSlice';
-import { CalendarClock, Minus, Plus, Trash, Check } from 'lucide-react-native';
+import { CalendarClock, Minus, Plus, Trash, Check, Pencil } from 'lucide-react-native';
 import { Checkbox, CheckboxIndicator, CheckboxLabel, CheckboxIcon } from '@/components/ui/checkbox';
+import { selectCreatineLogs } from '@/features/intake/intakeSlice';
 
 type Props = {
    isOpen: boolean;
@@ -52,11 +53,24 @@ const toSqlDateTime = (d: Date) => {
 const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts }) => {
    const dispatch = useAppDispatch();
    const drinkUnit = useAppSelector(selectDrinkUnit);
+   const creatineLogs = useAppSelector(selectCreatineLogs) as Array<{
+      id: string;
+      amount: number;
+      unit: string;
+      consumable: string;
+      consumed_at: string;
+   }>;
 
    const isEditing = Boolean(initial?.id);
 
    const [waterAmount, setWaterAmount] = React.useState<number>(initial?.amount ?? 0);
    const [includeCreatine, setIncludeCreatine] = React.useState<boolean>(false);
+   // Creatine pair editing (for water+creatine quick pair)
+   const [creatineEditing, setCreatineEditing] = React.useState<boolean>(false);
+   const [creatineAmount, setCreatineAmount] = React.useState<number>(5);
+   const [creatineAmountText, setCreatineAmountText] = React.useState<string>('5');
+   const [creatinePrevAmount, setCreatinePrevAmount] = React.useState<number | null>(null);
+   const [prevIncludeCreatine, setPrevIncludeCreatine] = React.useState<boolean | null>(null);
    const [pickerState, setPickerState] = React.useState<{ mode: 'date' | 'time' | null }>({
       mode: null
    });
@@ -80,25 +94,50 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
       setIsAmountFocused(false);
    };
 
-   // Close handler: reset quick-edit state when the sheet closes
+   // Close handler: just notify parent to close; we'll reset local state after the sheet finishes hiding
    const handleClose = React.useCallback(() => {
-      setQuickEdit({ active: false, index: null });
-      setIsAmountFocused(false);
-      setPickerState({ mode: null });
-      setIncludeCreatine(false);
-      setWaterAmount(0);
-      setWaterAmountText('0');
       onClose();
    }, [onClose]);
 
-   // If parent closes the sheet by changing isOpen, ensure quick-edit state is cleared
+   // When parent closes the sheet, wait until the sheet hides (animation) before resetting visible values
+   const resetTimer = React.useRef<number | null>(null);
    React.useEffect(() => {
+      // If sheet just closed, schedule a delayed reset so user doesn't see values snap during animation
       if (!isOpen) {
-         setQuickEdit({ active: false, index: null });
-         setIsAmountFocused(false);
-         setPickerState({ mode: null });
-         setIncludeCreatine(false);
+         // clear any previous timer
+         if (resetTimer.current) {
+            clearTimeout(resetTimer.current);
+            resetTimer.current = null;
+         }
+         resetTimer.current = setTimeout(() => {
+            setQuickEdit({ active: false, index: null });
+            setIsAmountFocused(false);
+            setPickerState({ mode: null });
+            setIncludeCreatine(false);
+            setWaterAmount(0);
+            setWaterAmountText('0');
+            // reset creatine editing state
+            setCreatineEditing(false);
+            setCreatineAmount(5);
+            setCreatineAmountText('5');
+            setCreatinePrevAmount(null);
+            setPrevIncludeCreatine(null);
+            resetTimer.current = null;
+         }, 350) as unknown as number; // 350ms matches typical sheet hide animation
+      } else {
+         // If reopened, cancel any pending reset
+         if (resetTimer.current) {
+            clearTimeout(resetTimer.current);
+            resetTimer.current = null;
+         }
       }
+
+      return () => {
+         if (resetTimer.current) {
+            clearTimeout(resetTimer.current);
+            resetTimer.current = null;
+         }
+      };
    }, [isOpen]);
 
    React.useEffect(() => {
@@ -121,7 +160,26 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
       setConsumedAt(initial?.consumed_at ? new Date(initial.consumed_at) : new Date());
       // sync text when external initial changes
       setWaterAmountText(initial?.amount !== undefined ? String(initial.amount) : '0');
-   }, [initial, isOpen]);
+      // Reflect paired entries from history (water + creatine at same time)
+      setIncludeCreatine(initial?.consumable === 'water+creatine');
+      // If editing an existing creatine-only log, ensure labels/input follow grams (amount lives in waterAmount)
+      if (initial?.consumable === 'creatine') {
+         setCreatineAmount(initial.amount ?? 5);
+         setCreatineAmountText(String(initial.amount ?? 5));
+      }
+      // If editing a paired (water+creatine) entry, load the paired creatine amount from store
+      if (initial?.consumable === 'water+creatine' && initial.consumed_at) {
+         const pair = creatineLogs.find((l) => l.consumed_at === initial.consumed_at);
+         if (pair) {
+            setCreatineAmount(pair.amount ?? 5);
+            setCreatineAmountText(String(pair.amount ?? 5));
+         } else {
+            // fallback to default if not found
+            setCreatineAmount(5);
+            setCreatineAmountText('5');
+         }
+      }
+   }, [initial, isOpen, creatineLogs]);
 
    React.useEffect(() => {
       // keep the text buffer in sync when amount changes externally and input not focused
@@ -138,6 +196,14 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
       if (quickEdit.active) {
          setQuickEditValue((prev) => Math.max(0, Math.round((prev + delta) * 100) / 100));
          setQuickEditText((prev) => {
+            const parsed = Number(prev.replace(',', '.'));
+            const next = (Number.isNaN(parsed) ? 0 : parsed) + delta;
+            return String(Math.max(0, Math.round(next * 100) / 100));
+         });
+      } else if (creatineEditing) {
+         // Adjust creatine grams
+         setCreatineAmount((prev) => Math.max(0, Math.round((prev + delta) * 100) / 100));
+         setCreatineAmountText((prev) => {
             const parsed = Number(prev.replace(',', '.'));
             const next = (Number.isNaN(parsed) ? 0 : parsed) + delta;
             return String(Math.max(0, Math.round(next * 100) / 100));
@@ -206,6 +272,23 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                consumed_at: when
             })
          );
+         // If this edit belongs to a paired water+creatine entry, also persist creatine side
+         if (initial.consumable === 'water+creatine') {
+            const pair = creatineLogs.find((l) => l.consumed_at === initial.consumed_at);
+            if (includeCreatine) {
+               const grams = Math.max(0, Math.round(creatineAmount * 100) / 100) || 5;
+               if (pair) {
+                  await dispatch(
+                     updateIntakeLog({ id: pair.id, amount: grams, unit: 'g', consumed_at: when })
+                  );
+               } else {
+                  await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when }));
+               }
+            } else if (pair) {
+               // User unchecked creatine while editing a paired entry -> remove the creatine log
+               await dispatch(deleteIntakeLog(pair.id));
+            }
+         }
       } else {
          // Add water only if > 0
          if (waterAmount > 0) {
@@ -220,28 +303,42 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
          }
          // Optional creatine pair (5g)
          if (includeCreatine) {
-            await dispatch(addCreatineLog({ amount: 5, unit: 'g', consumed_at: when }));
+            const grams = Math.max(0, Math.round(creatineAmount * 100) / 100) || 5;
+            await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when }));
          }
       }
       onClose();
    };
 
    const handleDelete = async () => {
-      if (initial?.id) {
-         await dispatch(deleteIntakeLog(initial.id));
-         onClose();
+      if (!initial?.id) return;
+
+      // Always delete the currently edited log
+      const deletions: Array<Promise<any>> = [dispatch(deleteIntakeLog(initial.id)) as any];
+
+      // If it's a combined entry, also delete the paired creatine log(s) at the same timestamp
+      if (initial.consumable === 'water+creatine' && initial.consumed_at) {
+         const pairs = creatineLogs.filter((l) => l.consumed_at === initial.consumed_at);
+         for (const p of pairs) {
+            deletions.push(dispatch(deleteIntakeLog(p.id)) as any);
+         }
       }
+
+      await Promise.allSettled(deletions);
+      onClose();
    };
 
    // Determine display unit and quick amounts (water-centric)
    const displayUnit = isEditing ? (initial?.unit ?? drinkUnit) : drinkUnit;
    const waterDefaults = drinkUnit === 'ml' ? [250, 330, 500, 750] : defaultQuick;
    const quicks = quicksLocal;
+   const isCreatineOnly = isEditing && initial?.consumable === 'creatine';
+   const amountLabel = isCreatineOnly || creatineEditing ? 'GRAMS' : 'OUNCES';
 
    return (
-   <Actionsheet
-      isOpen={isOpen}
-      onClose={handleClose}>
+      <Actionsheet
+         isOpen={isOpen}
+         onClose={handleClose}>
          <ActionsheetBackdrop />
          <ActionsheetContent style={{ paddingBottom: keyboardHeight + 30, width: '100%' }}>
             <View className='w-full'>
@@ -261,12 +358,22 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                   </Button>
                   <View className='flex flex-col items-center'>
                      <TextInput
-                        value={quickEdit.active ? quickEditText : waterAmountText}
+                        value={
+                           quickEdit.active
+                              ? quickEditText
+                              : creatineEditing
+                                ? creatineAmountText
+                                : waterAmountText
+                        }
                         onChangeText={(t) => {
                            if (quickEdit.active) {
                               setQuickEditText(t);
                               const parsed = Number(t.replace(',', '.'));
                               if (!Number.isNaN(parsed)) setQuickEditValue(parsed);
+                           } else if (creatineEditing) {
+                              setCreatineAmountText(t);
+                              const parsed = Number(t.replace(',', '.'));
+                              if (!Number.isNaN(parsed)) setCreatineAmount(parsed);
                            } else {
                               setWaterAmountText(t);
                               const parsed = Number(t.replace(',', '.'));
@@ -284,7 +391,7 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                         className='text-[5rem] font-extrabold text-center'
                         style={{ includeFontPadding: false, color: '#ffffff' }}
                      />
-                     <Text className='text-typography-500'>OUNCES</Text>
+                     <Text className='text-typography-500'>{amountLabel}</Text>
                   </View>
                   <Button
                      variant='outline'
@@ -297,7 +404,7 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
 
                <View className='mt-3 flex flex-col gap-2'>
                   {/* Quick adds row with always-visible plus button (hidden in quick-edit mode) */}
-                  {!quickEdit.active && (
+                  {!quickEdit.active && !creatineEditing && !isCreatineOnly && (
                      <View className='flex-row items-center'>
                         <ScrollView
                            horizontal
@@ -330,19 +437,12 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
 
                   {/* Date & Time selectors */}
                   {!isAmountFocused && !quickEdit.active && (
-                     <View className='flex-row gap-1 items-center justify-between'>
-                        <Checkbox
-                           size='md'
-                           value='creatine'
-                           isChecked={includeCreatine}
-                           onPress={() => setIncludeCreatine((v) => !v)}>
-                           <CheckboxIndicator>
-                              <CheckboxIcon as={Check} />
-                           </CheckboxIndicator>
-                           <CheckboxLabel className='text-sm'>5g Creatine</CheckboxLabel>
-                        </Checkbox>
+                     <View className='flex-row items-center justify-between'>
                         <View className='flex-row gap-1 items-center'>
-                           <CalendarClock color={'white'} />
+                           <CalendarClock
+                              color={'gray'}
+                              size={20}
+                           />
                            <Button
                               variant='outline'
                               size='sm'
@@ -367,6 +467,38 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                               </ButtonText>
                            </Button>
                         </View>
+                        {!isCreatineOnly && (
+                           <View className='flex-row gap-0 items-center'>
+                              <Checkbox
+                                 size='md'
+                                 value='creatine'
+                                 isChecked={includeCreatine}
+                                 onChange={(checked) => setIncludeCreatine(Boolean(checked))}>
+                                 <CheckboxIndicator>
+                                    <CheckboxIcon as={Check} />
+                                 </CheckboxIndicator>
+                                 <CheckboxLabel className='text-sm'>{`${creatineAmount}g Creatine`}</CheckboxLabel>
+                              </Checkbox>
+                              <Button
+                                 variant='link'
+                                 size='sm'
+                                 className='py-4 px-3'
+                                 onPress={() => {
+                                    // Start creatine edit mode; ensure creatine is included
+                                    setPrevIncludeCreatine(includeCreatine);
+                                    setIncludeCreatine(true);
+                                    setCreatinePrevAmount(creatineAmount);
+                                    setCreatineEditing(true);
+                                    setIsAmountFocused(true);
+                                    setPickerState({ mode: null });
+                                 }}>
+                                 <Pencil
+                                    color={'gray'}
+                                    size={16}
+                                 />
+                              </Button>
+                           </View>
+                        )}
                      </View>
                   )}
 
@@ -401,27 +533,30 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                      </View>
                   )}
 
-                  {!isAmountFocused && !quickEdit.active && !pickerState.mode && (
-                     <View className='flex-row gap-2'>
-                        <Button
-                           variant='solid'
-                           onPress={handleConfirm}
-                           className='flex-1'>
-                           <ButtonText>{isEditing ? 'Save' : 'Log'}</ButtonText>
-                        </Button>
-                        {isEditing && (
+                  {!creatineEditing &&
+                     !isAmountFocused &&
+                     !quickEdit.active &&
+                     !pickerState.mode && (
+                        <View className='flex-row gap-2'>
                            <Button
                               variant='solid'
-                              className='bg-red-700 items-center justify-center w-8'
-                              onPress={handleDelete}>
-                              <Trash
-                                 size={16}
-                                 color={'white'}
-                              />
+                              onPress={handleConfirm}
+                              className='flex-1'>
+                              <ButtonText>{isEditing ? 'Save' : 'Log'}</ButtonText>
                            </Button>
-                        )}
-                     </View>
-                  )}
+                           {isEditing && (
+                              <Button
+                                 variant='solid'
+                                 className='bg-red-700 items-center justify-center w-8'
+                                 onPress={handleDelete}>
+                                 <Trash
+                                    size={16}
+                                    color={'white'}
+                                 />
+                              </Button>
+                           )}
+                        </View>
+                     )}
 
                   {quickEdit.active && (
                      <View className='px-2 gap-2'>
@@ -449,6 +584,50 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                         <Button
                            variant='outline'
                            onPress={cancelQuick}
+                           className='w-full'>
+                           <ButtonText>Cancel</ButtonText>
+                        </Button>
+                     </View>
+                  )}
+
+                  {creatineEditing && (
+                     <View className='px-2 gap-2'>
+                        <View className='flex-row items-center gap-2'>
+                           <Button
+                              variant='solid'
+                              onPress={() => {
+                                 // Commit creatine amount and exit edit mode
+                                 const parsed = Number(creatineAmountText.replace(',', '.'));
+                                 const grams = Number.isNaN(parsed) ? creatineAmount : parsed;
+                                 const finalVal = Math.max(0, Math.round(grams * 100) / 100);
+                                 setCreatineAmount(finalVal);
+                                 setCreatineAmountText(String(finalVal));
+                                 setCreatineEditing(false);
+                                 setIsAmountFocused(false);
+                                 setCreatinePrevAmount(null);
+                                 setPrevIncludeCreatine(null);
+                              }}
+                              className='flex-1 justify-center'>
+                              <ButtonText>Save</ButtonText>
+                           </Button>
+                        </View>
+
+                        <Button
+                           variant='outline'
+                           onPress={() => {
+                              // Revert any changes and exit edit mode
+                              if (creatinePrevAmount !== null) {
+                                 setCreatineAmount(creatinePrevAmount);
+                                 setCreatineAmountText(String(creatinePrevAmount));
+                              }
+                              if (prevIncludeCreatine !== null) {
+                                 setIncludeCreatine(prevIncludeCreatine);
+                              }
+                              setCreatineEditing(false);
+                              setIsAmountFocused(false);
+                              setCreatinePrevAmount(null);
+                              setPrevIncludeCreatine(null);
+                           }}
                            className='w-full'>
                            <ButtonText>Cancel</ButtonText>
                         </Button>

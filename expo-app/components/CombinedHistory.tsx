@@ -116,6 +116,24 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       [drinkLogs, selectedDay]
    );
 
+   // Consolidate logs that share the exact same timestamp into a single chip
+   const dayCombinedLogs = React.useMemo(() => {
+      const map = new Map<string, { time: string; water?: IntakeLog; creatine?: IntakeLog }>();
+      dayWaterLogs.forEach((w) => {
+         const t = w.consumed_at;
+         const entry = map.get(t) || { time: t };
+         entry.water = w;
+         map.set(t, entry);
+      });
+      dayCreatineLogs.forEach((c) => {
+         const t = c.consumed_at;
+         const entry = map.get(t) || { time: t };
+         entry.creatine = c;
+         map.set(t, entry);
+      });
+      return Array.from(map.values()).sort((a, b) => (a.time < b.time ? -1 : 1));
+   }, [dayWaterLogs, dayCreatineLogs]);
+
    const selectedDayData = calendarData.find((d) => d.date === selectedDay);
 
    const displaySelectedDay = React.useMemo(() => {
@@ -157,6 +175,27 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       setSheetOpen(true);
    };
 
+   const openEditCombined = (item: { time: string; water?: IntakeLog; creatine?: IntakeLog }) => {
+      if (item.water) {
+         setSheetInitial({
+            id: item.water.id,
+            amount: item.water.amount,
+            unit: item.water.unit,
+            consumable: item.creatine ? 'water+creatine' : item.water.consumable,
+            consumed_at: item.time
+         });
+      } else if (item.creatine) {
+         setSheetInitial({
+            id: item.creatine.id,
+            amount: item.creatine.amount,
+            unit: item.creatine.unit,
+            consumable: item.creatine.consumable,
+            consumed_at: item.time
+         });
+      }
+      setSheetOpen(true);
+   };
+
    // Handlers now live inside IntakeDrawer
 
    return (
@@ -182,6 +221,12 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                   <View className='px-4 pb-4'>
                      <View className='flex flex-row justify-between items-center'>
                         <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
+                        <Text className='text-sm'>
+                           {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
+                        </Text>
+                        <Text className='text-sm'>
+                           {selectedDayData?.creatineAmount ?? 0} / {creatineGoal} {supplementUnit}
+                        </Text>
                         <TouchableOpacity onPress={() => openNew()}>
                            <CirclePlus
                               color='#ffffff'
@@ -189,56 +234,40 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                            />
                         </TouchableOpacity>
                      </View>
-                     <View className='flex-row items-center justify-between gap-2 mb-2'>
-                        <Text className='text-md font-semibold'>Creatine for the day</Text>
-                        <Text className='text-sm'>
-                           {selectedDayData?.creatineAmount ?? 0} / {creatineGoal} {supplementUnit}
-                        </Text>
-                     </View>
-                     {dayCreatineLogs.length === 0 && (
-                        <Text className='text-sm mb-2'>No creatine logs for this day...</Text>
+                     {dayCombinedLogs.length === 0 && (
+                        <Text className='text-sm mb-2'>No logs for this day...</Text>
                      )}
-                     {dayCreatineLogs.map((log) => (
+                     {dayCombinedLogs.map((item) => (
                         <TouchableOpacity
-                           key={log.id}
-                           onPress={() => openEdit(log)}>
-                           <Box className='p-3 rounded-lg mb-2 bg-background-100'>
-                              <View className='flex-row justify-between'>
-                                 <Text>
-                                    {convertCreatine(log.amount, log.unit, supplementUnit)}{' '}
-                                    {supplementUnit}
-                                 </Text>
-                                 <Text>
-                                    {new Date(log.consumed_at).toLocaleTimeString([], {
-                                       hour: '2-digit',
-                                       minute: '2-digit'
-                                    })}
-                                 </Text>
-                              </View>
-                           </Box>
-                        </TouchableOpacity>
-                     ))}
-
-                     <View className='flex-row items-center justify-between gap-2 mt-4 mb-2'>
-                        <Text className='text-md font-semibold'>Water for the day</Text>
-                        <Text className='text-sm'>
-                           {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
-                        </Text>
-                     </View>
-                     {dayWaterLogs.length === 0 && (
-                        <Text className='text-sm mb-2'>No water logs for this day...</Text>
-                     )}
-                     {dayWaterLogs.map((log) => (
-                        <TouchableOpacity
-                           key={log.id}
-                           onPress={() => openEdit(log)}>
+                           key={`${item.time}-${item.water?.id || 'w'}-${item.creatine?.id || 'c'}`}
+                           onPress={() => openEditCombined(item)}>
                            <Box className='p-3 rounded-lg bg-background-100 mb-2'>
                               <View className='flex-row justify-between'>
                                  <Text>
-                                    {convertWater(log.amount, log.unit, drinkUnit)} {drinkUnit}
+                                    {item.water && (
+                                       <>
+                                          {convertWater(
+                                             item.water.amount,
+                                             item.water.unit,
+                                             drinkUnit
+                                          ).toFixed(0)}{' '}
+                                          {drinkUnit}
+                                       </>
+                                    )}
+                                    {item.water && item.creatine ? ' | ' : ''}
+                                    {item.creatine && (
+                                       <>
+                                          {convertCreatine(
+                                             item.creatine.amount,
+                                             item.creatine.unit,
+                                             supplementUnit
+                                          ).toFixed(0)}{' '}
+                                          {supplementUnit}
+                                       </>
+                                    )}
                                  </Text>
                                  <Text>
-                                    {new Date(log.consumed_at).toLocaleTimeString([], {
+                                    {new Date(item.time).toLocaleTimeString([], {
                                        hour: '2-digit',
                                        minute: '2-digit'
                                     })}

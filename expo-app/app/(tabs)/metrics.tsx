@@ -194,8 +194,7 @@ const Metrics = () => {
                      size={32}
                   />
                   <Text className='text-[20px] font-semibold pl-[7]'>
-                     {/* {openPage === 'creatine' ? 'Creatine' : 'Water'} History */}
-                     Water History
+                     History
                   </Text>
                </View>
             </View>
