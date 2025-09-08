@@ -135,16 +135,35 @@ const Metrics = () => {
    const [performanceRange, setPerformanceRange] = useState<number>(7);
    const performanceSeries = perfFullSeries.slice(-performanceRange);
 
+   // ---- Merge three series into one dataset for multi-line chart ----
+   // Normalize to x = day index over last N days (we'll use the max selected range among the three)
+   const mergedRange = Math.max(
+      hydrationSaturationRange,
+      creatineSaturationRange,
+      performanceRange
+   );
+   const baseDays = hydrationBaseEntries.slice(-mergedRange).map((e) => e.date);
+
+   // Build maps for quick lookup by day
+   const mapHydration = new Map(hydrationFullSeries.map((d) => [d.day, d.amount]));
+   const mapCreatineSat = new Map(saturationFullSeries.map((d) => [d.day, d.amount]));
+   const mapPerformance = new Map(perfFullSeries.map((d) => [d.day, d.amount]));
+
+   const mergedData = baseDays.map((day, i) => {
+      const obj: any = { x: i, day };
+      if (mapHydration.has(day)) obj.y0 = mapHydration.get(day);
+      if (mapCreatineSat.has(day)) obj.y1 = mapCreatineSat.get(day);
+      if (mapPerformance.has(day)) obj.y2 = mapPerformance.get(day);
+      return obj;
+   });
+
    // --- Hydration Habits (bucketed by time of day) ---
    const todayBuckets = computeHydrationBucketsForDate(waterLogs as any);
    const avgBuckets = computeAverageHydrationBuckets(waterLogs as any, 30);
-   const habitsTodayData = todayBuckets.labels.map((label, i) => ({
+   const habitsCombined = todayBuckets.labels.map((label, i) => ({
       label,
-      value: todayBuckets.values[i]
-   }));
-   const habitsAvgData = avgBuckets.labels.map((label, i) => ({
-      label,
-      value: avgBuckets.values[i]
+      today: todayBuckets.values[i],
+      avg: avgBuckets.values[i] ?? 0
    }));
 
    const metricCards: { label: string; value: string }[] = [
@@ -193,9 +212,7 @@ const Metrics = () => {
                      color={'white'}
                      size={32}
                   />
-                  <Text className='text-[20px] font-semibold pl-[7]'>
-                     History
-                  </Text>
+                  <Text className='text-[20px] font-semibold pl-[7]'>History</Text>
                </View>
             </View>
             <View className='mb-4'>
@@ -222,84 +239,34 @@ const Metrics = () => {
                   ))}
                </View>
             </View>
-            <View className='mb-4'>
+            <View className='mb-8 bg-primary-0 p-4 rounded-lg'>
                <HistoryChart
-                  data={waterChartData}
-                  lineColor={waterLineColor}
+                  data={mergedData}
+                  xKey='x'
+                  yKeys={['y0', 'y1', 'y2']}
+                  lines={[
+                     { key: 'y0', color: hydrationLineColor, label: 'Hydration' },
+                     { key: 'y1', color: saturationLineColor, label: 'Creatine' },
+                     { key: 'y2', color: performanceLineColor, label: 'Performance' }
+                  ]}
                   yMax={100}
                   yTickCount={defaultYTicks}
-                  title={'Water Intake'}
+                  title={'Saturations'}
                   rangeOptions={rangeOptions}
-                  currentRange={waterRange}
-                  onRangeChange={setWaterRange}
-                  height={200}
-               />
-            </View>
-            <View className='mb-8'>
-               <HistoryChart
-                  data={creatineChartData}
-                  lineColor={creatineLineColor}
-                  yMax={5}
-                  yTickCount={3}
-                  title={'Creatine Intake'}
-                  rangeOptions={rangeOptions}
-                  currentRange={creatineRange}
-                  onRangeChange={setCreatineRange}
-                  height={200}
-               />
-            </View>
-            <View className='mb-8'>
-               <HistoryChart
-                  data={hydrationSeries}
-                  lineColor={hydrationLineColor}
-                  yMax={100}
-                  yTickCount={defaultYTicks}
-                  title={'Hydration Saturation'}
-                  rangeOptions={rangeOptions}
-                  currentRange={hydrationSaturationRange}
-                  onRangeChange={setHydrationSaturationRange}
-                  height={200}
-               />
-            </View>
-            <View className='mb-8'>
-               <HistoryChart
-                  data={saturationSeries}
-                  lineColor={saturationLineColor}
-                  yMax={100}
-                  yTickCount={defaultYTicks}
-                  title={'Creatine Saturation'}
-                  rangeOptions={rangeOptions}
-                  currentRange={creatineSaturationRange}
-                  onRangeChange={setCreatineSaturationRange}
-                  height={200}
-               />
-            </View>
-            <View className='mb-8'>
-               <HistoryChart
-                  data={performanceSeries}
-                  lineColor={performanceLineColor}
-                  yMax={100}
-                  yTickCount={defaultYTicks}
-                  title={'Performance Metric'}
-                  rangeOptions={rangeOptions}
-                  currentRange={performanceRange}
-                  onRangeChange={setPerformanceRange}
-                  height={200}
-               />
-            </View>
-            <View className='mb-8'>
-               <SimpleBarChart
-                  title='Hydration Habits (Today)'
-                  data={habitsTodayData}
-                  color={habitsTodayColor}
+                  currentRange={mergedRange}
+                  onRangeChange={(r) => {
+                     // Keep all three in sync for the shared chart
+                     setHydrationSaturationRange(r);
+                     setCreatineSaturationRange(r);
+                     setPerformanceRange(r);
+                  }}
                   height={220}
                />
             </View>
-            <View className='mb-8'>
+            <View className='mb-8 bg-primary-0 p-4 rounded-lg'>
                <SimpleBarChart
-                  title='Hydration Habits (Avg 30d)'
-                  data={habitsAvgData}
-                  color={habitsAvgColor}
+                  title='Hydration Habits'
+                  data={habitsCombined}
                   height={220}
                />
             </View>

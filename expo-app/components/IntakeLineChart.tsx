@@ -9,13 +9,22 @@ import { Box } from './ui/box';
 const spacemono: any = require('@/assets/fonts/SpaceMono-Regular.ttf');
 
 type ChartDataPoint = {
-   day: string;
-   amount: number;
+   // default single-series shape
+   day?: string;
+   amount?: number;
+   // multi-series shape (when xKey/yKeys provided)
+   x?: string | number;
+   [key: string]: any;
 };
 
 type Props = {
    data: ChartDataPoint[];
-   lineColor: string;
+   // Single-series color (used when lines not provided)
+   lineColor?: string;
+   // Multi-series configuration: supply yKeys and matching lines with colors
+   xKey?: string;
+   yKeys?: string[];
+   lines?: Array<{ key: string; color: string; label?: string }>;
    yMax?: number;
    yTickCount?: number;
    yAxisTickValues?: number[];
@@ -31,6 +40,9 @@ type Props = {
 export const HistoryChart = ({
    data,
    lineColor,
+   xKey,
+   yKeys,
+   lines,
    yMax,
    yTickCount,
    yAxisTickValues,
@@ -71,8 +83,11 @@ export const HistoryChart = ({
       return yTickCount ?? yAxisTickCount ?? 5;
    }, [yAxisTickValues, yTickCount, yAxisTickCount]);
 
+   const resolvedXKey = xKey ?? 'day';
+   const resolvedYKeys = yKeys ?? ['amount'];
+
    return (
-      <Box className='bg-primary-0 p-4 rounded-lg'>
+      <View>
          <View style={{ height, position: 'relative' }}>
             <View className='flex-row justify-between items-center mb-2 pl-[7] pr-[5]'>
                <Text className='text-lg text-white font-semibold'>{title}</Text>
@@ -117,8 +132,8 @@ export const HistoryChart = ({
             </View>
             <CartesianChart
                data={data}
-               xKey='day'
-               yKeys={['amount']}
+               xKey={resolvedXKey}
+               yKeys={resolvedYKeys}
                padding={{ top: 15, bottom: 0, left: 0, right: 15 }}
                domainPadding={{ left: 10, right: 10 }}
                xAxis={{
@@ -128,7 +143,7 @@ export const HistoryChart = ({
                   lineWidth: 0.25,
                   labelColor: '#fff',
                   axisSide: 'bottom',
-                  formatXLabel: (x) => (typeof x === 'string' ? x.slice(-2) : '')
+                  formatXLabel: (x) => (typeof x === 'string' ? x.slice(-2) : `${x}`)
                }}
                yAxis={[
                   {
@@ -144,17 +159,48 @@ export const HistoryChart = ({
                      linePathEffect: DashPathEffect({ intervals: [4, 6] })
                   }
                ]}>
-               {({ points }) => (
-                  <Line
-                     points={points.amount}
-                     color={lineColor}
-                     strokeWidth={4}
-                     animate={{ type: 'timing', duration: 300 }}
-                  />
-               )}
+               {({ points }) => {
+                  // Render multiple or single line depending on props
+                  if (Array.isArray(lines) && lines.length > 0) {
+                     return (
+                        <>
+                           {lines.map((l) => (
+                              <Line
+                                 key={l.key}
+                                 points={points[l.key]}
+                                 color={l.color}
+                                 strokeWidth={3}
+                                 animate={{ type: 'timing', duration: 300 }}
+                              />
+                           ))}
+                        </>
+                     );
+                  }
+                  // fallback single-series
+                  return (
+                     <Line
+                        points={(points as any).amount}
+                        color={lineColor || '#22d3ee'}
+                        strokeWidth={3}
+                        animate={{ type: 'timing', duration: 300 }}
+                     />
+                  );
+               }}
             </CartesianChart>
          </View>
-      </Box>
+         {Array.isArray(lines) && lines.length > 0 ? (
+            <View style={styles.legendContainer}>
+               {lines.map((l) => (
+                  <View
+                     key={l.key}
+                     style={styles.legendItem}>
+                     <View style={[styles.legendSwatch, { backgroundColor: l.color }]} />
+                     <Text style={styles.legendLabel}>{l.label ?? l.key}</Text>
+                  </View>
+               ))}
+            </View>
+         ) : null}
+      </View>
    );
 };
 
@@ -162,5 +208,27 @@ const styles = StyleSheet.create({
    rangeContainer: {
       flexDirection: 'row',
       alignItems: 'center'
+   },
+   legendContainer: {
+      marginTop: 8,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center'
+   },
+   legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 8,
+      marginTop: 4
+   },
+   legendSwatch: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      marginRight: 6
+   },
+   legendLabel: {
+      color: '#fff',
+      fontSize: 12
    }
 });
