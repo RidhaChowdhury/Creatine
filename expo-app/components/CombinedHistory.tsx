@@ -33,7 +33,13 @@ interface IntakeLog {
    consumed_at: string;
 }
 
-const formatDate = (d: Date) => d.toISOString().split('T')[0];
+// Use local date parts (not toISOString) so late-night local times don't roll to next UTC day
+const formatDate = (d: Date) => {
+   const yyyy = d.getFullYear();
+   const mm = String(d.getMonth() + 1).padStart(2, '0');
+   const dd = String(d.getDate()).padStart(2, '0');
+   return `${yyyy}-${mm}-${dd}`;
+};
 
 const convertWater = (amount: number, unit: string, targetUnit: string) => {
    if (unit === targetUnit) return amount;
