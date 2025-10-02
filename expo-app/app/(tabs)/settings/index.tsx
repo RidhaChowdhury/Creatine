@@ -49,23 +49,25 @@ const Settings = () => {
             contentContainerClassName='flex-grow'>
             {/* Account Section */}
             <Text className='text-xl font-semibold text-white px-2 mt-2 mb-2'>Account</Text>
-
-            <SettingsRow
-               label='Profile'
-               Icon={User}
-               onPress={() => router.push('/settings/profile') }
-            />
-            <SettingsRow
-               label='Account'
-               Icon={Lock}
-               onPress={() => router.push('/settings/account')}
-            />
-            <SettingsRow
-               label='Manage Subscription'
-               Icon={CircleFadingArrowUpIcon}
-               onPress={() => router.push('/settings/manageSubscription')}
-            />
-
+            <View className='rounded-lg'>
+               <SettingsRow
+                  label='Profile'
+                  Icon={User}
+                  onPress={() => router.push('/settings/profile')}
+                  bottomSeperator
+               />
+               <SettingsRow
+                  label='Account'
+                  Icon={Lock}
+                  onPress={() => router.push('/settings/account')}
+                  bottomSeperator
+               />
+               <SettingsRow
+                  label='Manage Subscription'
+                  Icon={CircleFadingArrowUpIcon}
+                  onPress={() => router.push('/settings/manageSubscription')}
+               />
+            </View>
             {/* Preferences Section */}
             <Text className='text-xl font-semibold text-white px-2 mt-2 mb-2'>Preferences</Text>
 
@@ -73,6 +75,7 @@ const Settings = () => {
                label='Units'
                Icon={Ruler}
                onPress={() => router.push('/settings/units')}
+               bottomSeperator
             />
             <SettingsRow
                label='Notifications'
@@ -86,6 +89,7 @@ const Settings = () => {
                label='About'
                Icon={Droplet}
                onPress={() => router.push('/settings/about')}
+               bottomSeperator
             />
             <SettingsRow
                label='Contact Us'

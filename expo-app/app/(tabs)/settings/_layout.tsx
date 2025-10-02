@@ -2,38 +2,47 @@ import { Stack } from 'expo-router';
 
 export default function SettingsLayout() {
    return (
-      <Stack>
+      <Stack
+         screenOptions={{
+            headerShown: true,
+            headerStyle: { backgroundColor: '#07070a' },
+            headerTintColor: '#fff',
+            headerTitleAlign: 'center',
+            headerBackButtonDisplayMode: 'minimal'
+         }}>
          <Stack.Screen
             name='index'
             options={{ headerShown: false }}
          />
          <Stack.Screen
             name='about'
-            options={{ headerShown: false }}
+            options={{  }}
          />
          <Stack.Screen
             name='account'
-            options={{ headerShown: false }}
+            options={{  }}
          />
          <Stack.Screen
             name='contact'
-            options={{ headerShown: false }}
+            options={{  }}
          />
          <Stack.Screen
             name='manageSubscription'
-            options={{ headerShown: false }}
+            options={{  }}
          />
          <Stack.Screen
             name='notifications'
-            options={{ headerShown: false }}
+            options={{  }}
          />
          <Stack.Screen
             name='profile'
-            options={{ headerShown: false }}
+            options={{
+              headerTitle: 'Edit Profile' 
+            }}
          />
          <Stack.Screen
             name='units'
-            options={{ headerShown: false }}
+            options={{  }}
          />
       </Stack>
    );
