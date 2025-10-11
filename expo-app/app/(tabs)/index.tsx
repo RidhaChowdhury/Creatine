@@ -3,9 +3,9 @@ import React, { useState, useEffect, useCallback, useContext, ChangeEvent } from
 import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';
 import { GlassWater } from 'lucide-react-native';
-import CreatineScoopIcon from '@/components/CreatineScoop';
-import { WaterLogActionsheet } from '@/components/WaterLogActionSheet';
-import { CreatineLogActionsheet } from '@/components/CreatineLogActionSheet';
+// import CreatineScoopIcon from '@/components/CreatineScoop';
+import IntakeDrawer from '@/components/IntakeDrawer';
+import { addDrinkLog, addCreatineLog } from '@/features/intake/intakeSlice';
 import { HStack } from '@/components/ui/hstack';
 import { Button, ButtonText } from '@/components/ui/button';
 import { WaveBackground } from '@/components/WaveBackground';
@@ -37,7 +37,7 @@ const Today = () => {
    const supplementUnit = useAppSelector(selectSupplementUnit);
 
    const [showWaterSheet, setShowWaterSheet] = useState(false);
-   const [showCreatineSheet, setShowCreatineSheet] = useState(false);
+   const [sheetInitial, setSheetInitial] = useState<any>(undefined);
    const [animationKey, setAnimationKey] = useState(0);
    const [showModal, setShowModal] = useState(false);
    const [date, setDate] = useState(new Date());
@@ -135,21 +135,6 @@ const Today = () => {
          <HStack
             className='absolute bottom-4 right-4'
             space='xl'>
-            {/* Creatine Button (left) */}
-            <Animated.View
-               key={animationKey}
-               entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}>
-               <Button
-                  size='lg'
-                  className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => setShowCreatineSheet(true)}>
-                  <CreatineScoopIcon
-                     color={'white'}
-                     size={50}
-                  />
-               </Button>
-            </Animated.View>
-
             {/* Water Button (right) */}
             <Animated.View
                key={`water-${animationKey}`}
@@ -157,7 +142,11 @@ const Today = () => {
                <Button
                   size='lg'
                   className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => setShowWaterSheet(true)}>
+                  onPress={() => {
+                     // open water sheet with current time
+                     setSheetInitial({ consumed_at: new Date().toISOString() });
+                     setShowWaterSheet(true);
+                  }}>
                   <GlassWater
                      color={'white'}
                      size={32}
@@ -166,15 +155,14 @@ const Today = () => {
             </Animated.View>
          </HStack>
 
-         {/* Water Logging Action Sheet */}
-         <WaterLogActionsheet
-            showActionsheet={showWaterSheet}
-            handleClose={() => setShowWaterSheet(false)}
-         />
-
-         <CreatineLogActionsheet
-            showActionsheet={showCreatineSheet}
-            handleClose={() => setShowCreatineSheet(false)}
+         {/* Unified Intake Drawer (water-centric with optional creatine) */}
+         <IntakeDrawer
+            isOpen={showWaterSheet}
+            initial={sheetInitial}
+            onClose={() => {
+               setShowWaterSheet(false);
+               setSheetInitial(undefined);
+            }}
          />
 
          {/* Creatine reminder time modal */}

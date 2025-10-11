@@ -1,50 +1,58 @@
 {
-   "expo": {
-      "name": "expo-app",
-      "slug": "expo-app",
-      "version": "1.0.0",
-      "orientation": "portrait",
-      "icon": "./assets/images/icon.png",
-      "scheme": "myapp",
-      "userInterfaceStyle": "automatic",
-      "newArchEnabled": true,
-      "ios": {
-         "supportsTablet": true,
-         "bundleIdentifier": "com.samlau25.expo-app"
-      },
-      "android": {
-         "adaptiveIcon": {
-            "foregroundImage": "./assets/images/adaptive-icon.png",
-            "backgroundColor": "#ffffff"
-         }
-      },
-      "web": {
-         "bundler": "metro",
-         "output": "static",
-         "favicon": "./assets/images/favicon.png"
-      },
-      "plugins": [
-         "expo-router",
-         [
-            "expo-splash-screen",
-            {
-               "image": "./assets/images/splash-icon.png",
-               "imageWidth": 200,
-               "resizeMode": "contain",
-               "backgroundColor": "#ffffff"
-            }
-         ],
-         "expo-font",
-         "expo-web-browser",
-         [
-            "expo-notifications",
-            {
-               "sounds": ["./water-drop.wav"]
-            }
-         ]
-      ],
-      "experiments": {
-         "typedRoutes": true
+  "expo": {
+    "name": "monohydrated",
+    "slug": "monohydrated",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.samlau25.monohydrated"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
       }
-   }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./water-drop.wav"
+          ]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d59c10dc-4f27-4d5a-a2f2-0ee42bdc4d86"
+      }
+    }
+  }
 }

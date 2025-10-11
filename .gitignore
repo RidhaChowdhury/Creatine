@@ -33,10 +33,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+expo-app/.env
+expo-app/.env.*
 
 # typescript
 *.tsbuildinfo
 
 app-example
-
-/expo-app/lib/supabase.js
