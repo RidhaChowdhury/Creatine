@@ -1,30 +1,63 @@
-import { View, Text, TextInput } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native';
 import React, { useState } from 'react';
+import { useAppSelector } from '@/store/hooks';
 
 type SettingsInputFieldProps = {
    label: string;
+   field: string;
    bottomSeperator?: boolean;
+   value: string | undefined;
+   setFunction: React.Dispatch<React.SetStateAction<any>>;
+   onChangeText: any;
+   keyboardType?: KeyboardTypeOptions;
 };
 
-const SettingsInputField = ({ label, bottomSeperator }: SettingsInputFieldProps) => {
-   const [currentText, onChangeText] = useState('');
+const SettingsInputField = ({
+   label,
+   field,
+   bottomSeperator,
+   value,
+   setFunction,
+   onChangeText,
+   keyboardType = 'default'
+}: SettingsInputFieldProps) => {
 
    return (
       <View
-         className={`flex-row items-center justify-between px-4 py-3 mb-0 h-[65px] ${
-            bottomSeperator ? 'border-b border-neutral-800 ' : ''
-         }`}>
-         <View className='flex-row items-center'>
-            <Text className='ml-3 text-white text-[18px]'>{label}</Text>
-            <TextInput
-               onChangeText={onChangeText}
-               value={currentText}
-               placeholder={label}
-               className='text-white text-[18px] ml-16'
-               keyboardType='default'></TextInput>
-         </View>
+         style={[
+            styles.container,
+            bottomSeperator && { borderBottomWidth: 1, borderBottomColor: '#262626' }
+         ]}>
+         <Text style={styles.label}>{label}</Text>
+         <TextInput
+            value={value}
+            onChangeText={(text) => onChangeText(setFunction, text, field)}
+            style={styles.input}
+            keyboardType={keyboardType}
+         />
       </View>
    );
 };
+
+const styles = StyleSheet.create({
+   container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      height: 65
+   },
+   label: {
+      color: '#fff',
+      fontSize: 18
+   },
+   input: {
+      color: '#fff',
+      fontSize: 18,
+      marginLeft: 24,
+      flex: 1
+   }
+});
 
 export default SettingsInputField;

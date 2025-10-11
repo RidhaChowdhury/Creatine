@@ -244,5 +244,11 @@ export const selectSupplementUnit = (state: RootState) => state.settings.supplem
 export const selectInitialFetchStatus = (state: RootState) => state.settings.initialFetchStatus;
 export const selectCreatineGoal = (state: RootState) => state.settings.creatine_goal;
 export const selectSettingsStatus = (state: RootState) => state.settings.status;
+export const selectProfileSettings = (state: RootState) => ({
+   name: state.settings.name,
+   height: state.settings.height,
+   weight: state.settings.weight,
+   sex: state.settings.sex
+});
 
 export default settingsSlice.reducer;

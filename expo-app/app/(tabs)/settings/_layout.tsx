@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { Button } from 'react-native';
 
 export default function SettingsLayout() {
    return (
@@ -16,33 +17,35 @@ export default function SettingsLayout() {
          />
          <Stack.Screen
             name='about'
-            options={{  }}
+            options={{}}
          />
          <Stack.Screen
             name='account'
-            options={{  }}
+            options={{}}
          />
          <Stack.Screen
             name='contact'
-            options={{  }}
+            options={{}}
          />
          <Stack.Screen
             name='manageSubscription'
-            options={{  }}
+            options={{}}
          />
          <Stack.Screen
             name='notifications'
-            options={{  }}
+            options={{}}
          />
          <Stack.Screen
             name='profile'
             options={{
-              headerTitle: 'Edit Profile' 
+               headerTitle: 'Edit Profile'
             }}
          />
          <Stack.Screen
             name='units'
-            options={{  }}
+            options={{
+               headerTitle: 'Select Units'
+            }}
          />
       </Stack>
    );

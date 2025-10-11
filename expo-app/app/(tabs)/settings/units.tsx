@@ -1,12 +1,31 @@
-import { View, Text } from 'react-native'
-import React from 'react'
+import { View, Text, SafeAreaView, Button } from 'react-native';
+import React, { useLayoutEffect, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import UnitPicker from '@/components/settings/UnitPicker';
 
 const units = () => {
-  return (
-    <View>
-      <Text>units</Text>
-    </View>
-  )
-}
+   const [isDirty, setIsDirty] = useState(false);
 
-export default units
+   const updateUnits = () => {};
+
+   const navigation = useNavigation();
+   useLayoutEffect(() => {
+      navigation.setOptions({
+         headerRight: () => (
+            <Button
+               title='Save'
+               disabled={!isDirty}
+               onPress={updateUnits}
+            />
+         )
+      });
+   });
+
+   return (
+      <SafeAreaView className='bg-background-0 h-full'>
+         <UnitPicker />
+      </SafeAreaView>
+   );
+};
+
+export default units;
