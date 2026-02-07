@@ -1,7 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
-import { supabase } from '@/lib/supabase';
 import { RootState } from '@/store/store';
 import { DRINK_TYPES } from '@/lib/constants';
+import {
+   fetchDrinkLogsDB,
+   fetchCreatineLogsDB,
+   insertIntakeLog,
+   updateIntakeLogDB,
+   deleteIntakeLogDB
+} from '@/lib/database';
 import { selectDrinkUnit, selectSupplementUnit } from '../settings/settingsSlice';
 
 const OZ_TO_ML = 29.5735;
@@ -34,7 +40,6 @@ function isDrinkType(value: ConsumableType): value is DrinkType {
 
 type IntakeLog = {
    id: string;
-   user_id: string;
    amount: number;
    unit: string;
    consumable: ConsumableType;
@@ -95,58 +100,20 @@ when adding a total */
 // Thunk to fetch drink logs (last 30 days)
 export const fetchDrinkLogs = createAsyncThunk<IntakeLog[], void, { state: RootState }>(
    'intake/fetchDrinkLogs',
-   async (_, thunkAPI) => {
-      const state = thunkAPI.getState();
-      const userId = state.auth.user?.id;
-
-      if (!userId) {
-         throw new Error('No user ID found');
-      }
-
+   async () => {
       const thirtyDaysAgo = get30DaysAgo();
-
-      const { data, error } = await supabase
-         .from('intake_log')
-         .select('*')
-         .eq('user_id', userId)
-         .in('consumable', DRINK_TYPES)
-         .gte('consumed_at', thirtyDaysAgo)
-         .order('consumed_at', { ascending: false });
-
-      if (error) {
-         throw new Error(error.message);
-      }
-
-      return data || [];
+      const rows = await fetchDrinkLogsDB(DRINK_TYPES, thirtyDaysAgo);
+      return rows as IntakeLog[];
    }
 );
 
 // Thunk to fetch creatine logs (last 30 days)
 export const fetchCreatineLogs = createAsyncThunk<IntakeLog[], void, { state: RootState }>(
    'intake/fetchCreatineLogs',
-   async (_, thunkAPI) => {
-      const state = thunkAPI.getState();
-      const userId = state.auth.user?.id;
-
-      if (!userId) {
-         throw new Error('No user ID found');
-      }
-
+   async () => {
       const thirtyDaysAgo = get30DaysAgo();
-
-      const { data, error } = await supabase
-         .from('intake_log')
-         .select('*')
-         .eq('user_id', userId)
-         .eq('consumable', 'creatine')
-         .gte('consumed_at', thirtyDaysAgo)
-         .order('consumed_at', { ascending: false });
-
-      if (error) {
-         throw new Error(error.message);
-      }
-
-      return data || [];
+      const rows = await fetchCreatineLogsDB(thirtyDaysAgo);
+      return rows as IntakeLog[];
    }
 );
 
@@ -155,33 +122,14 @@ export const addDrinkLog = createAsyncThunk<
    IntakeLog,
    { amount: number; consumable: DrinkType; unit?: string; consumed_at?: string },
    { state: RootState }
->('intake/addDrinkLog', async ({ amount, consumable, unit = 'oz', consumed_at }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const { data, error } = await supabase
-      .from('intake_log')
-      .insert([
-         {
-            user_id: userId,
-            amount,
-            unit,
-            consumable,
-            consumed_at: consumed_at || formatDateTime(new Date())
-         }
-      ])
-      .select()
-      .single();
-
-   if (error) {
-      throw new Error(error.message);
-   }
-
-   return data;
+>('intake/addDrinkLog', async ({ amount, consumable, unit = 'oz', consumed_at }) => {
+   const row = await insertIntakeLog({
+      amount,
+      unit,
+      consumable,
+      consumed_at: consumed_at || formatDateTime(new Date())
+   });
+   return row as IntakeLog;
 });
 
 // Thunk to add creatine log
@@ -189,33 +137,14 @@ export const addCreatineLog = createAsyncThunk<
    IntakeLog,
    { amount: number; unit?: string; consumed_at?: string },
    { state: RootState }
->('intake/addCreatineLog', async ({ amount, unit = 'g', consumed_at }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const { data, error } = await supabase
-      .from('intake_log')
-      .insert([
-         {
-            user_id: userId,
-            amount,
-            unit,
-            consumable: 'creatine',
-            consumed_at: consumed_at || formatDateTime(new Date())
-         }
-      ])
-      .select()
-      .single();
-
-   if (error) {
-      throw new Error(error.message);
-   }
-
-   return data;
+>('intake/addCreatineLog', async ({ amount, unit = 'g', consumed_at }) => {
+   const row = await insertIntakeLog({
+      amount,
+      unit,
+      consumable: 'creatine',
+      consumed_at: consumed_at || formatDateTime(new Date())
+   });
+   return row as IntakeLog;
 });
 
 // Thunk to update intake log (works for both drinks and creatine)
@@ -223,35 +152,9 @@ export const updateIntakeLog = createAsyncThunk<
    IntakeLog,
    { id: string; amount: number; unit?: string; consumed_at?: string },
    { state: RootState }
->('intake/updateIntakeLog', async ({ id, amount, unit, consumed_at }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const updateData: any = { amount };
-   if (unit) {
-      updateData.unit = unit;
-   }
-   if (consumed_at) {
-      updateData.consumed_at = consumed_at;
-   }
-
-   const { data, error } = await supabase
-      .from('intake_log')
-      .update(updateData)
-      .eq('id', id)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-   if (error) {
-      throw new Error(error.message);
-   }
-
-   return data;
+>('intake/updateIntakeLog', async ({ id, amount, unit, consumed_at }) => {
+   const row = await updateIntakeLogDB({ id, amount, unit, consumed_at });
+   return row as IntakeLog;
 });
 
 // Thunk to delete intake log (works for both drinks and creatine)
@@ -259,33 +162,9 @@ export const deleteIntakeLog = createAsyncThunk<
    { id: string; consumable: ConsumableType },
    string,
    { state: RootState }
->('intake/deleteIntakeLog', async (id, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   // First get the log to know what type it is
-   const { data: logData, error: fetchError } = await supabase
-      .from('intake_log')
-      .select('consumable')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
-
-   if (fetchError) {
-      throw new Error(fetchError.message);
-   }
-
-   const { error } = await supabase.from('intake_log').delete().eq('id', id).eq('user_id', userId);
-
-   if (error) {
-      throw new Error(error.message);
-   }
-
-   return { id, consumable: logData.consumable };
+>('intake/deleteIntakeLog', async (id) => {
+   const consumable = await deleteIntakeLogDB(id);
+   return { id, consumable: consumable as ConsumableType };
 });
 
 const intakeSlice = createSlice({

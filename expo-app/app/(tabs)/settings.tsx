@@ -1,7 +1,6 @@
 import { View, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import React from 'react';
 import { Button, ButtonText } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
 import { Text } from '@/components/ui/text/';
 import { CircleUser, Pencil, Check, X, Crown } from 'lucide-react-native';
 import { selectUserSettings } from '@/features/settings/settingsSlice';
@@ -22,12 +21,10 @@ import {
 import { ChevronDownIcon } from '@/components/ui/icon';
 import { Box } from '@/components/ui/box';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectUser, setUser } from '@/features/auth/authSlice';
 import { updateSettings } from '@/features/settings/settingsSlice';
 
 const Settings = () => {
    const dispatch = useAppDispatch();
-   const user = useAppSelector(selectUser);
    const settings = useAppSelector(selectUserSettings);
    const [formState, setFormState] = React.useState({});
    const [activeEditSection, setActiveEditSection] = React.useState<string | null>(null);
@@ -100,17 +97,11 @@ const Settings = () => {
                <View>
                   <Text className='text-[14px] py-[4] text-typography-300'>Name</Text>
                   <Input
-                     className='h-[45]'
+                     className='h-[45] mb-[5]'
                      isDisabled={activeEditSection !== 'profile'}>
                      <InputField onChangeText={(e: string) => handleInputChange('name', e)}>
                         {settings?.name}
                      </InputField>
-                  </Input>
-                  <Text className='text-[14px] py-[4] pt-[8] text-typography-300'>Email</Text>
-                  <Input
-                     className='h-[45] mb-[5]'
-                     isDisabled={true}>
-                     <InputField>{user?.email}</InputField>
                   </Input>
                </View>
             </Box>
@@ -368,13 +359,6 @@ const Settings = () => {
                </View>
             </Box>
 
-            <Button
-               className='mt-[15] mb-[25] h-[45] rounded-[15px]'
-               onPress={() => {
-                  supabase.auth.signOut();
-               }}>
-               <ButtonText className='text-[20px] font-semibold'>Log Out</ButtonText>
-            </Button>
          </ScrollView>
       </SafeAreaView>
    );

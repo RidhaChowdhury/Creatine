@@ -26,15 +26,13 @@ import {
 } from '@/components/ui/select';
 import { ChevronDownIcon } from '@/components/ui/icon';
 import { router } from 'expo-router';
-import { selectUser } from '@/features/auth/authSlice';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { useAppDispatch } from '@/store/hooks';
 import { addSettings } from '@/features/settings/settingsSlice';
 
 const Onboarding = () => {
    const [showAlertDialog, setShowAlertDialog] = React.useState(false);
    const handleClose = () => setShowAlertDialog(false);
 
-   const user = useAppSelector(selectUser);
    const dispatch = useAppDispatch();
 
    const [formData, setFormData] = React.useState({

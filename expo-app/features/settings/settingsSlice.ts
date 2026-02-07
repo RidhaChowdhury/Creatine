@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-import { supabase } from '@/lib/supabase';
 import { RootState } from '@/store/store';
+import {
+   fetchSettingsDB,
+   insertSettingsDB,
+   updateSettingsDB,
+   updateCreatineReminderTimeDB
+} from '@/lib/database';
 
 export type UserSettings = {
    name: string;
@@ -44,26 +49,11 @@ const initialState: SettingsState = {
 
 export const fetchSettings = createAsyncThunk<UserSettings | null, void, { state: RootState }>(
    'settings/fetchSettings',
-   async (_, thunkAPI) => {
-      const state = thunkAPI.getState();
-      const userId = state.auth.user?.id;
-
-      if (!userId) {
-         throw new Error('No user ID found');
-      }
-
-      const { data, error } = await supabase
-         .from('user_settings')
-         .select('*')
-         .eq('user_id', userId)
-         .maybeSingle();
-
-      if (error) {
-         console.error('Error fetching: ', error);
-         throw new Error(error.message);
-      }
-
-      return data;
+   async () => {
+      const row = await fetchSettingsDB();
+      if (!row) return null;
+      const { id, ...settings } = row;
+      return settings;
    }
 );
 
@@ -71,29 +61,10 @@ export const updateSettings = createAsyncThunk<
    UserSettings,
    { formData: UserSettings },
    { state: RootState }
->('settings/updateSettings', async ({ formData }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const { data, error } = await supabase
-      .from('user_settings')
-      .update({
-         ...formData
-      })
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-   if (error) {
-      console.error('Error updating: ', error);
-      throw new Error(error.message);
-   }
-
-   return data;
+>('settings/updateSettings', async ({ formData }) => {
+   const row = await updateSettingsDB(formData);
+   const { id, ...settings } = row;
+   return settings;
 });
 
 // should only be called in onboarding
@@ -101,56 +72,20 @@ export const addSettings = createAsyncThunk<
    UserSettings,
    { formData: OnboardingSettings },
    { state: RootState }
->('settings/addSettings', async ({ formData }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const { data, error } = await supabase
-      .from('user_settings')
-      .insert({
-         ...formData,
-         user_id: userId
-      })
-      .select()
-      .single();
-
-   if (error) {
-      console.error(error);
-      throw new Error(error.message);
-   }
-
-   return data;
+>('settings/addSettings', async ({ formData }) => {
+   const row = await insertSettingsDB(formData);
+   const { id, ...settings } = row;
+   return settings;
 });
 
 export const updateCreatineReminderTime = createAsyncThunk<
    UserSettings,
    { creatineReminderTime: string },
    { state: RootState }
->('settings/updateCreatineReminderTime', async ({ creatineReminderTime }, thunkAPI) => {
-   const state = thunkAPI.getState();
-   const userId = state.auth.user?.id;
-
-   if (!userId) {
-      throw new Error('No user ID found');
-   }
-
-   const { data, error } = await supabase
-      .from('user_settings')
-      .update({ creatine_reminder_time: creatineReminderTime })
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-   if (error) {
-      console.error('Error updating: ', error);
-      throw new Error(error.message);
-   }
-
-   return data;
+>('settings/updateCreatineReminderTime', async ({ creatineReminderTime }) => {
+   const row = await updateCreatineReminderTimeDB(creatineReminderTime);
+   const { id, ...settings } = row;
+   return settings;
 });
 
 const settingsSlice = createSlice({
