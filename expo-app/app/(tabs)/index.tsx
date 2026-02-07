@@ -1,4 +1,5 @@
-import { View, SafeAreaView, TouchableOpacity, Alert } from 'react-native';
+import { View, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useCallback, useContext, ChangeEvent } from 'react';
 import { Text } from '@/components/ui/text';
 import { Fab } from '@/components/ui/fab';

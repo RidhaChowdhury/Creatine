@@ -309,9 +309,10 @@ export const selectCreatineLogsByDate = (state: RootState, date: string) => {
    return state.intake.creatineLogs.filter((log) => log.consumed_at.startsWith(date));
 };
 
-export const selectWaterLogs = (state: RootState) => {
-   return state.intake.drinkLogs.filter((log) => log.consumable === 'water');
-};
+export const selectWaterLogs = createSelector(
+   [selectDrinkLogs],
+   (logs) => logs.filter((log) => log.consumable === 'water')
+);
 
 export const selectDailyWaterTotal = createSelector(
    [selectDrinkLogs, selectDrinkUnit],

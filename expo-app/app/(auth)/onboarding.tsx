@@ -1,4 +1,5 @@
-import { View, SafeAreaView, TouchableOpacity, Platform, Keyboard } from 'react-native';
+import { View, TouchableOpacity, Platform, Keyboard } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import { Text } from '@/components/ui/text';
 import { Input, InputField } from '@/components/ui/input';

@@ -1,4 +1,5 @@
-import { View, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Text } from '@/components/ui/text/';

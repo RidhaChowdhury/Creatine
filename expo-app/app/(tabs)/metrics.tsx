@@ -1,4 +1,5 @@
-import { View, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useContext } from 'react';
 import { Text } from '@/components/ui/text';
 import { CalendarDays } from 'lucide-react-native';
