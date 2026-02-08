@@ -1,4 +1,4 @@
-import { View, ScrollView, ActivityIndicator } from 'react-native';
+import { View, ScrollView, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useContext } from 'react';
 import { Text } from '@/components/ui/text';
@@ -270,6 +270,18 @@ const Metrics = () => {
                   data={habitsCombined}
                   height={220}
                />
+            </View>
+            <View className='mb-8 gap-3'>
+               <TouchableOpacity
+                  className='bg-blue-500 rounded-lg p-4 items-center'
+                  onPress={() => Alert.alert('Test', 'TouchableOpacity 1 pressed')}>
+                  <Text className='text-white font-semibold'>Test Button 1</Text>
+               </TouchableOpacity>
+               <TouchableOpacity
+                  className='bg-purple-500 rounded-lg p-4 items-center'
+                  onPress={() => Alert.alert('Test', 'TouchableOpacity 2 pressed')}>
+                  <Text className='text-white font-semibold'>Test Button 2</Text>
+               </TouchableOpacity>
             </View>
          </ScrollView>
       </SafeAreaView>
