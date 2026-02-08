@@ -329,7 +329,7 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
    };
 
    // Determine display unit and quick amounts (water-centric)
-   const displayUnit = isEditing ? (initial?.unit ?? drinkUnit) : drinkUnit;
+   const displayUnit = isEditing ? initial?.unit ?? drinkUnit : drinkUnit;
    const waterDefaults = drinkUnit === 'ml' ? [250, 330, 500, 750] : defaultQuick;
    const quicks = quicksLocal;
    const isCreatineOnly = isEditing && initial?.consumable === 'creatine';
@@ -362,8 +362,8 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                            quickEdit.active
                               ? quickEditText
                               : creatineEditing
-                                ? creatineAmountText
-                                : waterAmountText
+                              ? creatineAmountText
+                              : waterAmountText
                         }
                         onChangeText={(t) => {
                            if (quickEdit.active) {
@@ -477,6 +477,7 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                                  <CheckboxIndicator>
                                     <CheckboxIcon as={Check} />
                                  </CheckboxIndicator>
+                                 {/* this shouldn't always be grams @ridha */}
                                  <CheckboxLabel className='text-sm'>{`${creatineAmount}g Creatine`}</CheckboxLabel>
                               </Checkbox>
                               <Button
@@ -512,11 +513,11 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
                                  ? pickerState.mode === 'time'
                                     ? 'spinner'
                                     : parseInt(String(Platform.Version), 10) >= 14
-                                      ? 'inline'
-                                      : 'spinner'
+                                    ? 'inline'
+                                    : 'spinner'
                                  : pickerState.mode === 'time'
-                                   ? 'clock'
-                                   : 'calendar'
+                                 ? 'clock'
+                                 : 'calendar'
                            }
                            onChange={(e, d) => {
                               if (d) setConsumedAt(d);

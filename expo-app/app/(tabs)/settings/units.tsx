@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, Button } from 'react-native';
+import { View, Text, SafeAreaView, Button, ScrollView } from 'react-native';
 import React, { useLayoutEffect, useState } from 'react';
 import { useNavigation } from 'expo-router';
 import UnitPicker from '@/components/settings/UnitPicker';
@@ -23,7 +23,21 @@ const units = () => {
 
    return (
       <SafeAreaView className='bg-background-0 h-full'>
-         <UnitPicker />
+         <ScrollView
+            showsVerticalScrollIndicator={false}
+            className='px-8'
+            contentContainerClassName='flex-grow'>
+            <Text className='text-xl font-semibold text-white mt-2 mb-2'>Drink Unit</Text>
+            <UnitPicker
+               unitOne='ml'
+               unitTwo='oz'
+            />
+            <Text className='text-xl font-semibold text-white mt-8 mb-2'>Supplement Unit</Text>
+            <UnitPicker
+               unitOne='g'
+               unitTwo='mg'
+            />
+         </ScrollView>
       </SafeAreaView>
    );
 };
