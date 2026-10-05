@@ -24,10 +24,24 @@ export async function createReleaseManifest({root=process.cwd(),env=process.env,
     }
   } catch(e) { if(e.code!=='ENOENT') throw e; }
   const rollbackResult=env.DROPS_ROLLBACK_RESULT||'unrun';if(!['unrun','passed','failed'].includes(rollbackResult)) throw new Error('Rollback result must be unrun, passed or failed.');
+  const validationResult=env.DROPS_VALIDATION_RESULT||'unrun';if(!['unrun','passed','failed'].includes(validationResult)) throw new Error('Validation result must be unrun, passed or failed.');
+  let httpVerification=null;
+  try {
+    const bytes=await readFile(path.join(root,'artifacts/deployment-verification.json'));
+    const probe=JSON.parse(bytes);
+    httpVerification={sha256:hash(bytes),status:['passed','failed'].includes(probe.status)?probe.status:'unknown',asOf:Number.isFinite(Date.parse(probe.asOf))?probe.asOf:null,deploymentId:identifier(probe.deploymentId),matchesDeployment:Boolean(env.DROPS_DEPLOY_ID&&probe.deploymentId===env.DROPS_DEPLOY_ID)};
+  } catch(e) { if(e.code!=='ENOENT') throw e; }
+  let backendVerification=null;
+  try {
+    const bytes=await readFile(path.join(root,'artifacts/production-backend-verification.json'));
+    const proof=JSON.parse(bytes);
+    backendVerification={sha256:hash(bytes),status:proof.status==='passed'?'passed':'unknown',projectRef:identifier(proof.projectRef),asOf:Number.isFinite(Date.parse(proof.asOf))?proof.asOf:null,scope:'validated environment; no database writes or deployed-bundle identity proof'};
+  } catch(e) { if(e.code!=='ENOENT') throw e; }
   const deploymentUrl=env.DROPS_DEPLOY_URL?new URL(env.DROPS_DEPLOY_URL):null;
   if(deploymentUrl&&(deploymentUrl.protocol!=='https:'||deploymentUrl.username||deploymentUrl.password||deploymentUrl.search||deploymentUrl.hash||deploymentUrl.pathname!=='/'))throw new Error('Manifest deployment URL must be a clean HTTPS origin.');
   return {createdAt:new Date().toISOString(),commit:source.commit,commitSha256:hash(source.commit),dirty:source.dirty,node:process.version,environment,environmentSha256:hash(environment),lockfileSha256:await hashFile(root,'package-lock.json'),appConfigSha256:await hashFile(root,'app.json'),easConfigSha256:await hashFile(root,'eas.json'),exportManifests:exports,
     buildId:identifier(env.EAS_BUILD_ID),iosBuildId:identifier(env.DROPS_IOS_BUILD_ID),androidBuildId:identifier(env.DROPS_ANDROID_BUILD_ID),updateId:identifier(env.DROPS_UPDATE_ID),deploymentId:identifier(env.DROPS_DEPLOY_ID),deploymentUrl:deploymentUrl?.href??null,runtimeFingerprint:identifier(env.DROPS_RUNTIME_FINGERPRINT),iosFingerprint:identifier(env.DROPS_IOS_FINGERPRINT),androidFingerprint:identifier(env.DROPS_ANDROID_FINGERPRINT),
+    verification:{validation:validationResult,http:httpVerification,backend:backendVerification,limitations:['Validation covers only the executed gates; installed-device and authenticated-cloud evidence remain separate artifacts.']},
     rollback:{result:rollbackResult,previousDeploymentId:identifier(env.DROPS_PREVIOUS_DEPLOYMENT_ID),previousUpdateId:identifier(env.DROPS_PREVIOUS_UPDATE_ID),previousIosBuildId:identifier(env.DROPS_PREVIOUS_IOS_BUILD_ID),previousAndroidBuildId:identifier(env.DROPS_PREVIOUS_ANDROID_BUILD_ID),previousRuntime:identifier(env.DROPS_PREVIOUS_RUNTIME),channel:identifier(env.DROPS_ROLLBACK_CHANNEL)},
     migrationLedger:{source:applied?'operator-verified-input':'unknown',validatedAt:validatedAt??null},migrations:await Promise.all(names.map(async name=>({name,sha256:await hashFile(root,`supabase/migrations/${name}`),applied:applied?applied.includes(name):'unknown'})))};
 }

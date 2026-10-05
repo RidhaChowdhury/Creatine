@@ -1,5 +1,7 @@
 name: Drops manual production web promotion
 # This workflow never applies database migrations or submits native store builds.
+# Use the GitHub production-web-dispatch workflow for global serialization.
+# Direct EAS manual runs bypass that lock and require operator single-run control.
 on:
   workflow_dispatch: {}
 defaults:
@@ -12,11 +14,11 @@ jobs:
       EXPO_NO_DOTENV: '1'
     steps:
       - uses: eas/checkout
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: npm run verify
       # Local SQLite fixtures are isolated even in this production job.
       - run: npm run build:web
-      - run: npx playwright install --with-deps chromium
+      - run: node scripts/retry-infrastructure.mjs -- npx playwright install --with-deps chromium
       - run: npm run test:e2e:export
   candidate:
     needs: [validate]
@@ -26,15 +28,26 @@ jobs:
       EXPO_NO_DOTENV: '1'
     params:
       prod: false
+    hooks:
+      after_install_node_modules:
+        - run: node scripts/guard-production.mjs
+        - uses: eas/upload_artifact
+          with:
+            path: artifacts/production-backend-verification.json
+            name: production-export-backend-guard
+            type: other
   verify_candidate:
     needs: [candidate]
     environment: production
     env:
       DROPS_ENV: production
+      EXPO_NO_DOTENV: '1'
+      DROPS_VALIDATION_RESULT: passed
       DROPS_DEPLOY_URL: ${{ needs.candidate.outputs.deploy_deployment_url }}
       DROPS_DEPLOY_ID: ${{ needs.candidate.outputs.deploy_identifier }}
     steps:
       - uses: eas/checkout
+      - run: node scripts/guard-production.mjs
       - run: node scripts/verify-deployment.mjs
       - run: node scripts/release-manifest.mjs
       - uses: eas/upload_artifact
