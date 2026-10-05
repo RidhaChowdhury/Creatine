@@ -30,7 +30,7 @@ export type PitwallWaterPreset = {
     amount: number;
     unit: string;
 };
-export function formatPitwallAmount(v: number) { return String(Math.round(v * 1000) / 1000); }
+export function formatPitwallAmount(v: number) { return String(Math.round(v * 100) / 100); }
 export type PitwallDashboardProps = {
     waterAmount: number;
     waterGoal: number;

@@ -14,7 +14,8 @@ export function ProfileEditor({ tracker, onClose }: {
 }) {
     const d = useDrops(), s = d.snapshot!, plan = tracker ? planForDay(tracker, dayInZone(d.now, s.preferences.timezone)) : null;
     const [name, setName] = useState(tracker?.name ?? ''), [category, setCategory] = useState(tracker?.category ?? 'supplement'), [metric, setMetric] = useState<MetricType>(tracker?.metricType ?? 'other');
-    const [unit, setUnit] = useState(tracker?.unit ?? 'g'), [dose, setDose] = useState(tracker?.savedDose?.toString() ?? ''), [target, setTarget] = useState(plan?.target?.toString() ?? ''), [limit, setLimit] = useState(plan?.limit?.toString() ?? '');
+    const initialUnit = tracker?.unit ?? 'g';
+    const [unit, setUnit] = useState(initialUnit), [dose, setDose] = useState(tracker?.savedDose?.toString() ?? ''), [target, setTarget] = useState(plan?.target == null ? '' : String(convertAmount(plan.target, plan.unit, initialUnit))), [limit, setLimit] = useState(plan?.limit == null ? '' : String(convertAmount(plan.limit, plan.unit, initialUnit)));
     const [mode, setMode] = useState(plan?.mode ?? 'as-needed'), [days, setDays] = useState<number[]>(plan?.days ?? [0, 1, 2, 3, 4, 5, 6]), [rows, setRows] = useState<(Omit<DosePlan, 'amount'> & {
         amount: string;
     })[]>(plan?.doses.map(r => ({ ...r, amount: String(r.amount) })) ?? []);

@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Platform, View } from 'react-native';
-import { Canvas, Group, Path, Skia, Text as SkiaText, useFont } from '@shopify/react-native-skia';
+import { Canvas, Group, Path, Skia, Text as SkiaText, useFont, useCanvasRef } from '@shopify/react-native-skia';
 import { useDerivedValue, useFrameCallback, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { waterSurface, type WaterImpulse } from './WaterMotion';
 
@@ -10,6 +10,17 @@ type Props = { width: number; height: number; level: number; valueText: string; 
 /** The blue fill and the submerged glyphs use the very same Skia path. */
 export function WaterScene(props: Props) {
   const host = useRef<View>(null);
+  const canvas = useCanvasRef();
+  const attachHost = useCallback((view: View | null) => {
+    host.current = view;
+    if (Platform.OS !== 'web' || !view) return;
+    // Initialize before Skia's layout callback creates its surface. A preserved
+    // buffer keeps a static/reduced-motion scene intact during DOM compositing.
+    (view as unknown as HTMLElement).querySelector('canvas')?.getContext('webgl2', {
+      alpha: true, depth: true, stencil: true, antialias: false,
+      premultipliedAlpha: true, preserveDrawingBuffer: true,
+    });
+  }, []);
   const font = useFont(require('@expo-google-fonts/barlow-condensed/600SemiBold/BarlowCondensed_600SemiBold.ttf'), props.fontSize);
   const smallFont = useFont(require('@expo-google-fonts/ibm-plex-mono/400Regular/IBMPlexMono_400Regular.ttf'), 20);
   useEffect(() => {
@@ -22,13 +33,30 @@ export function WaterScene(props: Props) {
       cancelAnimationFrame(request);
       request = requestAnimationFrame(() => {
         const context = element?.querySelector('canvas')?.getContext('webgl2');
-        if (context) context.drawingBufferColorSpace = 'srgb';
+        if (context && context.drawingBufferColorSpace !== 'srgb') {
+          context.drawingBufferColorSpace = 'srgb';
+          // Changing the WebGL buffer color space invalidates its contents.
+          // Reduced motion has no animation frame to repaint them for us.
+          canvas.current?.redraw();
+        }
       });
     };
     applyColorSpace();
+    const webCanvas = element?.querySelector('canvas');
+    const repaint = () => {
+      applyColorSpace();
+      canvas.current?.redraw();
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') repaint(); };
+    webCanvas?.addEventListener('webglcontextrestored', repaint);
+    document.addEventListener('visibilitychange', onVisible);
     const observer = new ResizeObserver(applyColorSpace);
     if (element) observer.observe(element);
-    return () => { cancelAnimationFrame(request); observer.disconnect(); };
+    return () => {
+      cancelAnimationFrame(request); observer.disconnect();
+      webCanvas?.removeEventListener('webglcontextrestored', repaint);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [font, smallFont, props.width, props.height]);
   const clock = useSharedValue(0);
   const level = useSharedValue(props.level);
@@ -63,8 +91,8 @@ export function WaterScene(props: Props) {
   const unitX = useDerivedValue(() => props.numberX + (font ? font.getGlyphWidths(font.getGlyphIDs(counter.value)).reduce((sum, width) => sum + width, 0) : 0) + 18);
   const reflection = useDerivedValue(() => props.reducedMotion ? .12 : .12 + Math.exp(-(clock.value - impulseAt.value) / 550) * .2);
   if (!font || !smallFont || props.width <= 0 || props.height <= 0) return null;
-  return <View ref={host} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} accessible={false}>
-  <Canvas style={{ width: props.width, height: props.height }} colorSpace="srgb" pointerEvents="none" accessible={false}>
+  return <View ref={attachHost} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} accessible={false}>
+  <Canvas ref={canvas} style={{ width: props.width, height: props.height }} colorSpace="srgb" pointerEvents="none" accessible={false}>
     <Path path={fill} color="#398eff" />
     <Path path={edge} color="#e9e9e9" style="stroke" strokeWidth={1} opacity={reflection} />
     <SkiaText x={props.numberX} y={props.numberBaseline} text={counter} font={font} color="#e9e9e9" />

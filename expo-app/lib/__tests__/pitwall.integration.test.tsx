@@ -3,6 +3,7 @@ import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 import Tabs from '@/app/(tabs)/_layout';
 import mockHome from '@/app/(tabs)/index';
 import mockHistoryScreen from '@/components/drops/HistoryScreen';
+import {ProfileEditor} from '@/components/drops/ProfileEditor';
 import type {DropsSnapshot,DropsEntry,EntryInput,MutationReceipt} from '@/lib/drops/types';
 
 jest.mock('tamagui',()=>{const React=require('react');const component=(name:string)=>({children,...props}:any)=>React.createElement(name,props,children);return Object.fromEntries(['Button','Text','XStack','YStack','ScrollView','Input'].map(n=>[n,component(`Test${n}`)]));});
@@ -14,8 +15,8 @@ jest.mock('@/components/FeedbackProvider',()=>({useFeedback:()=>mockFeedback}));
 jest.mock('@/features/drops/DropsProvider',()=>({DropsProvider:({children}:any)=>children,useDrops:()=>{const React=require('react');return React.useSyncExternalStore((listener:()=>void)=>{mockListeners.add(listener);return ()=>mockListeners.delete(listener);},()=>mockController);}}));
 jest.mock('expo-router',()=>({usePathname:()=>mockPath,useRouter:()=>({navigate:mockNavigate,push:mockNavigate}),Slot:()=>{const React=require('react');return mockPath.includes('supps')?React.createElement('TestText',{},'Supplement destination'):mockPath.includes('history')?React.createElement(mockHistoryScreen):React.createElement(mockHome);}}));
 jest.mock('@/components/pitwall/PitwallOverlays',()=>{const React=require('react');return ({PitwallSheet:({children,open,title}:any)=>open?React.createElement('TestSheet',{title},children):null});});
-jest.mock('@/components/drops/PerformanceSheet',()=>({PerformanceSheet:()=>null}));
-jest.mock('@/components/pitwall/PitwallDashboard',()=>{const React=require('react');return {PitwallDashboard:({waterAmount,waterUnit}:any)=>React.createElement('TestDashboard',{},React.createElement('TestText',{'testID':'water-total'},`${waterAmount} ${waterUnit}`))};});
+jest.mock('@/components/drops/PerformanceSheet',()=>({PerformanceSheet:({open}:any)=>require('react').createElement('TestPerformanceSheet',{open})}));
+jest.mock('@/components/pitwall/PitwallDashboard',()=>{const React=require('react');return {PitwallDashboard:({waterAmount,waterUnit,waterGoal,waterLimit}:any)=>React.createElement('TestDashboard',{waterGoal,waterLimit},React.createElement('TestText',{'testID':'water-total'},`${waterAmount} ${waterUnit}`))};});
 jest.mock('@/components/pitwall/WaterScene',()=>({WaterScene:()=>null}));
 
 const mockNow=new Date('2026-10-04T12:00:00Z');
@@ -57,6 +58,29 @@ it('shared navigation selects destinations and + preserves the selected route',a
 it('unified History retains four distinct IDs with equal timestamps and custom units',async()=>{
  for(const [trackerId,amount,unit,id] of [['builtin:water',12,'oz','water-history'],['builtin:creatine',5,'g','creatine-history'],['custom:blend',1.25,'scoops','blend-history'],['medication:tablet',1,'tablets','medication-history']] as const){persist(receipt({trackerId,amount,unit,consumedAt:mockNow.toISOString(),note:''},id));}
  await mount(React.createElement(mockHistoryScreen));const rows=renderer.root.findAllByType('TestButton' as never).filter(n=>String(n.props['aria-label']).startsWith('Edit '));expect(rows).toHaveLength(4);expect(new Set(mockController.snapshot.entries.map((e:DropsEntry)=>e.id)).size).toBe(4);expect(texts()).toEqual(expect.arrayContaining(['Water','Creatine','Electrolyte blend','Prescription tablet','scoops','tablets']));
+});
+
+it('Home converts a retained mL plan target and limit to the current oz display unit',async()=>{
+ const water=mockController.snapshot.trackers[0];water.plans[0]={...water.plans[0],unit:'mL',target:2365.882365,limit:2957.35295625};
+ await mount();const dashboard=renderer.root.findByType('TestDashboard' as never);
+ expect(dashboard.props.waterGoal).toBeCloseTo(80,8);expect(dashboard.props.waterLimit).toBeCloseTo(100,8);
+});
+
+it('the accessible Performance trigger opens its breakdown sheet',async()=>{
+ await mount();expect(renderer.root.findByType('TestPerformanceSheet' as never).props.open).toBe(false);
+ const trigger=renderer.root.findAll(n=>n.props.accessibilityLabel==='Open Performance breakdown'&&typeof n.props.onPress==='function')[0];
+ expect(trigger.props.accessibilityRole).toBe('button');await act(async()=>trigger.props.onPress());
+ expect(renderer.root.findByType('TestPerformanceSheet' as never).props.open).toBe(true);
+});
+
+it('editing a profile converts source plan quantities before saving in its display unit',async()=>{
+ const tracker={...mockController.snapshot.trackers[2],unit:'g',plans:[{id:'source-plan',effectiveFrom:'2026-01-01',mode:'as-needed',days:[],doses:[],unit:'mg',target:5000,limit:10000}]};
+ const save=jest.fn().mockResolvedValue(undefined);mockController.saveProfile=save;
+ await mount(<ProfileEditor tracker={tracker} onClose={()=>{}}/>);
+ const inputs=renderer.root.findAllByType('TestInput' as never);
+ expect(inputs.find(n=>n.props['aria-label']==='Quantity target (optional)')?.props.value).toBe('5');
+ expect(inputs.find(n=>n.props['aria-label']==='Quantity limit (optional)')?.props.value).toBe('10');
+ await press('Save tracker');expect(save).toHaveBeenCalledWith(expect.objectContaining({unit:'g',plan:expect.objectContaining({unit:'g',target:5,limit:10})}));
 });
 
 
