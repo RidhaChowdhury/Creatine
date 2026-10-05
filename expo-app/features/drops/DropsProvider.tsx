@@ -52,13 +52,23 @@ function useController() {
     return () => { void supabase?.removeChannel(channel); };
   }, [refresh]);
   useEffect(() => {
-    if (state.snapshot && active) void reconcileDoseReminders(state.snapshot, now).catch(e => dispatch(failedDrops(`Reminder update failed: ${(e as Error).message}`)));
+    let current = true;
+    const epoch = accountEpoch.current;
+    if (state.snapshot && active) void reconcileDoseReminders(state.snapshot, now).catch(e => {
+      if (current && mounted.current && epoch === accountEpoch.current) dispatch(failedDrops(`Reminder update failed: ${(e as Error).message}`));
+    });
+    return () => { current = false; };
   }, [state.snapshot, now, active, dispatch]);
   useEffect(() => listenForDoseReminder(prefill => setAddRequest(prefill)), []);
   useEffect(() => {
     if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') { revision.current++; accountEpoch.current++; dispatch(resetDrops()); setAddRequest(null); void clearDoseReminders(); }
+    let owner: string | null | undefined;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextOwner = session?.user.id ?? null;
+      if (event === 'SIGNED_OUT' || (owner !== undefined && owner !== nextOwner)) {
+        revision.current++; accountEpoch.current++; dispatch(resetDrops()); setAddRequest(null); void clearDoseReminders();
+      }
+      owner = nextOwner;
     });
     return () => data.subscription.unsubscribe();
   }, [dispatch]);
