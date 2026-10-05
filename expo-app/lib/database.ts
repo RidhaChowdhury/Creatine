@@ -9,11 +9,12 @@ export type IntakeLogRow = {
    unit: string;
    consumable: string;
    consumed_at: string;
+   consumed_at_utc?: string | null;
    logged_at: string;
 };
 
 export type UserSettingsRow = {
-   id: number;
+   id: number | string;
    name: string;
    height: number;
    weight: number;
@@ -27,12 +28,11 @@ export type UserSettingsRow = {
 
 // ---- Singleton DB handle ----
 
-let db: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-   if (db) return db;
-   db = await SQLite.openDatabaseAsync('creatine.db');
-   return db;
+export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+   if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('creatine.db').catch(error => { dbPromise = null; throw error; });
+   return dbPromise;
 }
 
 // ---- Schema initialization ----
@@ -110,26 +110,62 @@ export async function fetchCreatineLogsDB(since: string): Promise<IntakeLogRow[]
 }
 
 export async function insertIntakeLog(params: {
+   id?: string;
+   operationId?: string;
    amount: number;
    unit: string;
    consumable: string;
    consumed_at: string;
 }): Promise<IntakeLogRow> {
    const database = await getDatabase();
-   const id = Crypto.randomUUID();
+   if (params.id && params.operationId && params.id !== params.operationId) {
+      throw new Error('Conflicting intake operation IDs were supplied.');
+   }
+   const operationId = params.operationId ?? params.id;
+   if (operationId !== undefined && !operationId.trim()) throw new Error('Operation ID must not be empty.');
+   const id = operationId ?? Crypto.randomUUID();
    const logged_at = nowLocal();
 
-   await database.runAsync(
-      `INSERT INTO intake_log (id, amount, unit, consumable, consumed_at, logged_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, params.amount, params.unit, params.consumable, params.consumed_at, logged_at]
+   const readExisting = () => database.getFirstAsync<IntakeLogRow>(
+      'SELECT * FROM intake_log WHERE id = ?', [id]
    );
+   const existing = operationId ? await readExisting() : null;
+   if (existing) return matchIdempotentIntakeLog(existing, params);
 
-   const row = await database.getFirstAsync<IntakeLogRow>(
-      'SELECT * FROM intake_log WHERE id = ?',
-      [id]
-   );
+   try {
+      await database.runAsync(
+         `INSERT INTO intake_log (id, amount, unit, consumable, consumed_at, logged_at)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+         [id, params.amount, params.unit, params.consumable, params.consumed_at, logged_at]
+      );
+   } catch (insertError) {
+      // Concurrent retries can both miss the initial lookup; resolve the unique-ID race safely.
+      if (operationId) {
+         const concurrent = await readExisting();
+         if (concurrent) return matchIdempotentIntakeLog(concurrent, params);
+      }
+      throw insertError;
+   }
+
+   const row = await readExisting();
    return row!;
+}
+
+function matchIdempotentIntakeLog(
+   row: IntakeLogRow,
+   input: { amount: number; unit: string; consumable: string; consumed_at: string }
+): IntakeLogRow {
+   const sameTime = timestampMatches(row.consumed_at, input.consumed_at);
+   if (row.amount !== input.amount || row.unit !== input.unit || row.consumable !== input.consumable || !sameTime) {
+      throw new Error('This operation ID already belongs to a different intake entry.');
+   }
+   return row;
+}
+
+function timestampMatches(left: string, right: string): boolean {
+   const leftTime = Date.parse(left);
+   const rightTime = Date.parse(right);
+   return Number.isFinite(leftTime) && Number.isFinite(rightTime) ? leftTime === rightTime : left === right;
 }
 
 export async function updateIntakeLogDB(params: {
