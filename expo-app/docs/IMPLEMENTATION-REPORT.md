@@ -6,6 +6,16 @@ Status meanings: **Pass** means the stated acceptance was exercised in the named
 
 ## Acceptance matrix
 
+### Local preview follow-up — 2026-10-05
+
+The user's new navigation direction supersedes the original transparent bar: a continuous dark full-width dock now has its own safe-area space. Hover/press feedback stays within compact icons; whole-tab backgrounds remain transparent and keyboard focus remains visible. History follows the approved flat timeline with left-aligned name/time/note, vertically centered icons and exact right-aligned quantities. Phone/tablet screenshots cover long notes and `236.588 mL` without clipping.
+
+Local Settings can add the previous 30 complete timezone days of explicitly labeled sample water, creatine, fiber and caffeine history. Strict loopback/web/no-cloud guards run before reads and writes. Stable operation IDs make retries idempotent; real tracker-days, archived profiles, plans and settings are preserved. The requested manual preview backfill succeeded. No hosted or production data was seeded.
+
+Validation: `verify` passed 123 Jest tests, 35 script tests, TypeScript and both database verifiers. The completed local export passed all 25 Playwright cases in one final run (19 functional, including the new sample/navigation/History regression, and six reviewed Windows visual comparisons). Pixel checks retain the 0.2% threshold and three identical frames; they probe the actual canvas above the dock and exposed water beside the Performance panel. Resize testing found and fixed absolute-position anchoring and Skia canvas intrinsic minimum sizing. Actual in-app resizing also confirmed the canvas ends exactly at navigation. Evidence: `artifacts/ui-backfill-{verify,export,final-browser}.log` and `artifacts/ui-backfill/`.
+
+These changes are available in the local preview on port 8082. The hosted/native build IDs and installed-device limitations below describe the earlier checkpoint; this follow-up does not claim a new EAS deployment, native binary or physical-device pass.
+
 | Complete | ID | Status | Evidence and remaining gate |
 | --- | --- | --- | --- |
 | [ ] | A01 | Partial — local and hosted browser behavior passed | Local exported-browser checks exercise 8/16 oz, totals, History and reload. The acceptance browser flow saves 123.4567 mL once, verifies 4.17 oz daily display, exact source quantity/time/note in History and persistence after reload. Real authenticated hosted UI at `https://drops-ridha--4z09v9bc5e.expo.app` passed 8/16 oz saves, 24 oz reload, correction to 26 oz and reload using Drops Test. Installed-native acceptance remains separate and unverified by these checks. |

@@ -9,7 +9,7 @@ export function Screen({ title, children, action }: {
     action?: React.ReactNode;
 }) {
     const inset = useSafeAreaInsets();
-    return <ScrollView flex={1} backgroundColor="#0c0c0c" contentContainerStyle={{ paddingTop: inset.top + 26, paddingBottom: inset.bottom + 110, paddingHorizontal: 24 }}><YStack gap={22} width="100%" maxWidth={900} alignSelf="center"><Text fontFamily="$brand" fontWeight="800" fontSize={26} color={ink}>DROPS.</Text><XStack alignItems="center" justifyContent="space-between"><Text role="heading" fontFamily="$display" fontWeight="600" fontSize={42} color={ink}>{title}</Text>{action}</XStack>{children}</YStack></ScrollView>;
+    return <ScrollView flex={1} backgroundColor="#0c0c0c" contentContainerStyle={{ paddingTop: inset.top + 26, paddingBottom: 32, paddingHorizontal: 24 }}><YStack gap={22} width="100%" maxWidth={900} alignSelf="center"><Text fontFamily="$brand" fontWeight="800" fontSize={26} color={ink}>DROPS.</Text><XStack alignItems="center" justifyContent="space-between"><Text role="heading" fontFamily="$display" fontWeight="600" fontSize={42} color={ink}>{title}</Text>{action}</XStack>{children}</YStack></ScrollView>;
 }
 export function StateGate({ children }: {
     children: React.ReactNode;

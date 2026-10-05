@@ -14,9 +14,15 @@ export function WaterScene(props: Props) {
   const attachHost = useCallback((view: View | null) => {
     host.current = view;
     if (Platform.OS !== 'web' || !view) return;
+    const webCanvas = (view as unknown as HTMLElement).querySelector('canvas');
+    if (!webCanvas) return;
+    // Skia's flex canvas otherwise uses its previous bitmap dimensions as its
+    // minimum size, preventing it from shrinking with a rotated/resized window.
+    webCanvas.style.minWidth = '0';
+    webCanvas.style.minHeight = '0';
     // Initialize before Skia's layout callback creates its surface. A preserved
     // buffer keeps a static/reduced-motion scene intact during DOM compositing.
-    (view as unknown as HTMLElement).querySelector('canvas')?.getContext('webgl2', {
+    webCanvas.getContext('webgl2', {
       alpha: true, depth: true, stencil: true, antialias: false,
       premultipliedAlpha: true, preserveDrawingBuffer: true,
     });

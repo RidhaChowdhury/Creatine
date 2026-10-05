@@ -5,6 +5,8 @@ Status: interview reconciled; ready for implementation handoff. This document sp
 Quality goal: a ship-ready browser app plus installed, tested iOS and Android builds. The beta is open; preserve account/auth behavior and avoid invitation infrastructure. Deployment and store submission are distinct operational actions; prepare the artifacts and release runbook without treating bundle exports as finished releases.
 Companion: [next-agent kickoff](C:/Users/ridha/Work/Apps/creatine/expo-app/docs/DROPS-V0.1-AGENT-KICKOFF.md). Original feedback and interview answers: [feedback record](C:/Users/ridha/Work/Apps/creatine/expo-app/docs/DROPS-V0.1-FEEDBACK.md).
 
+**2026-10-05 user-feedback amendment:** the transparent navigation treatment below is superseded by a continuous dark full-width bottom surface, with compact icon/label feedback instead of rectangular tab backgrounds. Content must remain visible above that surface. History keeps the approved flat timeline, with consistent row alignment and comfortable whole-row targets.
+
 ## 1. Outcome
 
 Deliver a complete, coherent Drops experience for logging water, supplements, and medications; reviewing intake history; and understanding logged routines through transparent Insights. Keep the Pitwall visual identity and Skia water as core product qualities. Persistence, readable states, and restrained feedback must work together.

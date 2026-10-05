@@ -36,7 +36,7 @@ function receipt(input:EntryInput,id:string):MutationReceipt{const tracker=mockC
 function persist(r:MutationReceipt){publish({snapshot:{...mockController.snapshot,entries:[...mockController.snapshot.entries,r.after]}});return r;}
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>{resolve=r;});return {promise,resolve};}
 const texts=()=>renderer.root.findAllByType('TestText' as never).map(n=>n.children.join(''));
-const button=(label:string)=>renderer.root.findAllByType('TestButton' as never).find(n=>n.props['aria-label']===label)!;
+const button=(label:string)=>renderer.root.findAll(n=>typeof n.props.onPress==='function' && (n.props['aria-label']===label || n.props.accessibilityLabel===label))[0];
 async function press(label:string){await act(async()=>{button(label).props.onPress();for(let i=0;i<8;i++)await Promise.resolve();});}
 async function mount(component:React.ReactElement=<Tabs/>){await act(async()=>{renderer=create(component);});}
 beforeEach(()=>{jest.clearAllMocks();mockListeners.clear();mockSequence=0;mockPath='/';mockController={snapshot:snapshot(),now:mockNow,status:'ready',error:null,addRequest:null,openAdd:(prefill={})=>publish({addRequest:prefill}),closeAdd:()=>publish({addRequest:null}),add:mockAdd,undo:mockUndo};mockAdd.mockImplementation(async(input,id)=>persist(receipt(input,id)));mockUndo.mockImplementation(async(r:MutationReceipt,id:string)=>{publish({snapshot:{...mockController.snapshot,entries:mockController.snapshot.entries.filter((e:DropsEntry)=>e.id!==r.after?.id||e.storageKind!==r.after?.storageKind)}});return {operationId:id,kind:'delete',before:r.after,after:null};});});
@@ -57,7 +57,7 @@ it('shared navigation selects destinations and + preserves the selected route',a
 });
 it('unified History retains four distinct IDs with equal timestamps and custom units',async()=>{
  for(const [trackerId,amount,unit,id] of [['builtin:water',12,'oz','water-history'],['builtin:creatine',5,'g','creatine-history'],['custom:blend',1.25,'scoops','blend-history'],['medication:tablet',1,'tablets','medication-history']] as const){persist(receipt({trackerId,amount,unit,consumedAt:mockNow.toISOString(),note:''},id));}
- await mount(React.createElement(mockHistoryScreen));const rows=renderer.root.findAllByType('TestButton' as never).filter(n=>String(n.props['aria-label']).startsWith('Edit '));expect(rows).toHaveLength(4);expect(new Set(mockController.snapshot.entries.map((e:DropsEntry)=>e.id)).size).toBe(4);expect(texts()).toEqual(expect.arrayContaining(['Water','Creatine','Electrolyte blend','Prescription tablet','scoops','tablets']));
+ await mount(React.createElement(mockHistoryScreen));const rows=[...new Map(renderer.root.findAll(n=>typeof n.props.onPress==='function' && String(n.props.accessibilityLabel).startsWith('Edit ')).map(n=>[n.props.accessibilityLabel,n])).values()];expect(rows).toHaveLength(4);expect(rows.every(n=>n.props.accessibilityRole==='button')).toBe(true);expect(new Set(mockController.snapshot.entries.map((e:DropsEntry)=>e.id)).size).toBe(4);expect(texts()).toEqual(expect.arrayContaining(['Water','Creatine','Electrolyte blend','Prescription tablet','scoops','tablets']));
 });
 
 it('Home converts a retained mL plan target and limit to the current oz display unit',async()=>{
