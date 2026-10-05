@@ -1,0 +1,53 @@
+name: Drops Test cloud QA
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: Immutable Drops Test drops-ridha--deploymentId.expo.app origin
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: drops-test-cloud-qa
+  cancel-in-progress: false
+jobs:
+  cloud_qa:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: expo-app
+    environment: drops-test-qa
+    timeout-minutes: 20
+    env:
+      DROPS_QA_BROWSER_URL: ${{ inputs.deployment_url }}
+      EXPO_PUBLIC_SUPABASE_URL: https://snabmkbeoshxxxhtwkyi.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_NdtsrdMH-YacQ2XXHElAbg_15pwK_ao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+      - name: Guard immutable URL before credentials
+        run: node --input-type=module -e "import {guardCloudBrowserUrl} from './scripts/cloud-browser-target.mjs'; guardCloudBrowserUrl(process.env.DROPS_QA_BROWSER_URL,{allowPreview:false});"
+      - name: Require protected test admin credential before installation
+        env:
+          DROPS_QA_SECRET_PRESENT: ${{ secrets.DROPS_TEST_SERVICE_ROLE_KEY != '' }}
+        run: node --input-type=module -e "if(process.env.DROPS_QA_SECRET_PRESENT!=='true')throw new Error('Configure DROPS_TEST_SERVICE_ROLE_KEY in the protected drops-test-qa environment; never use EXPO_PUBLIC_ or commit the credential.');"
+      - name: Install dependencies
+        run: node scripts/retry-infrastructure.mjs -- npm ci
+      - name: Install Chromium
+        run: node scripts/retry-infrastructure.mjs -- npx playwright install --with-deps chromium
+      - name: Run disposable authenticated cloud and browser QA
+        env:
+          DROPS_TEST_SERVICE_ROLE_KEY: ${{ secrets.DROPS_TEST_SERVICE_ROLE_KEY }}
+        run: npm run test:e2e:cloud:ci
+      - name: Upload sanitized cloud evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drops-test-cloud-qa
+          path: expo-app/artifacts/cloud-qa/*.json
+          if-no-files-found: ignore

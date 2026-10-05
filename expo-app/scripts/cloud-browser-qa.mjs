@@ -5,26 +5,32 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { chromium, expect } from '@playwright/test';
 import { guardCloudQa, testConfiguration, testProjectRef } from './cloud-qa.mjs';
-export function guardCloudBrowserUrl(value){
-  const url=new URL(value);
-  if(url.username||url.password||url.search||url.hash)throw new Error('Use a clean immutable test deployment URL.');
-  const deployed=url.protocol==='https:' && url.hostname.endsWith('.expo.app');
-  const preview=url.protocol==='http:' && url.hostname==='127.0.0.1' && url.port==='4174';
-  if(!deployed&&!preview)throw new Error('Cloud browser QA only accepts an immutable .expo.app test deployment or 127.0.0.1:4174.');
-  return url.href;
-}
+import { guardCloudBrowserUrl,assertCloudBrowserRequest } from './cloud-browser-target.mjs';
+export { guardCloudBrowserUrl } from './cloud-browser-target.mjs';
 export async function runCloudBrowserQa({url,credentialsFile,configuration:providedConfiguration}){
   const base=guardCloudBrowserUrl(url),users=JSON.parse(await readFile(credentialsFile,'utf8'));
   const configuration=providedConfiguration??await testConfiguration();guardCloudQa(configuration.url,users);
-  const browser=await chromium.launch({headless:true});
-  const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'America/Chicago',reducedMotion:'reduce'});
+  const browser=await chromium.launch({headless:true,args:['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']});
+  const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'America/Chicago',reducedMotion:'reduce',serviceWorkers:'block'});
   const page=await context.newPage();page.setDefaultTimeout(30000);
   const sanitize=value=>users.reduce((text,user)=>[user.email,user.password,user.id].reduce((result,secret)=>secret?result.split(secret).join('[redacted]'):result,text),String(value)).replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[redacted token]');
   const prohibited=[],pageErrors=[],passed=[],scriptAudits=[];let canvasKitLoaded=false;
-  await context.route(/https?:\/\/[^/]*supabase\.(co|com)\//,async route=>{
-    const requestUrl=new URL(route.request().url());
-    if(requestUrl.hostname!==`${testProjectRef}.supabase.co`){prohibited.push(requestUrl.hostname);await route.abort('blockedbyclient');}
-    else await route.continue();
+  const allow=request=>assertCloudBrowserRequest(request.url(),{deploymentUrl:base,resourceType:request.resourceType()});
+  const refused=value=>{let destination='unrecognized scheme';try{const url=new URL(value);destination=url.protocol==='data:'||url.protocol==='blob:'?url.protocol:`${url.protocol}//${url.hostname}`;}catch{}prohibited.push(sanitize(destination));};
+  await context.route('**/*',async route=>{
+    try{allow(route.request());}catch{refused(route.request().url());await route.abort('blockedbyclient');return;}
+    if(!/^https?:/.test(route.request().url())){await route.continue();return;}
+    // Routing does not intercept every redirect hop. Refuse redirects instead of
+    // allowing a permitted origin to forward credentials or requests elsewhere.
+    try{
+      const response=await route.fetch({maxRedirects:0});
+      if(response.status()>=300&&response.status()<400){prohibited.push('HTTP redirect refused');await route.abort('blockedbyclient');return;}
+      await route.fulfill({response});
+    }catch{pageErrors.push('Allowed browser request failed before response');await route.abort('failed').catch(()=>{});}
+  });
+  await context.routeWebSocket(/.*/,async socket=>{
+    try{assertCloudBrowserRequest(socket.url(),{deploymentUrl:base,resourceType:'websocket'});}catch{refused(socket.url());await socket.close({code:1008,reason:'Destination outside QA allowlist'});return;}
+    socket.connectToServer();
   });
   page.on('pageerror',error=>pageErrors.push(sanitize(error.message)));
   page.on('response',response=>{
@@ -34,7 +40,9 @@ export async function runCloudBrowserQa({url,credentialsFile,configuration:provi
     }).catch(()=>{}));
   });
   async function signIn(user){
+    assert.equal(new URL(page.url()).origin,new URL(base).origin,'credentials stay on the guarded immutable origin');
     await expect(page.getByLabel('Email',{exact:true})).toBeVisible({timeout:60000});
+    assert.deepEqual(prohibited,[],'unexpected browser traffic prevents credential entry');
     await page.getByLabel('Email',{exact:true}).fill(user.email);
     await page.getByLabel('Password',{exact:true}).fill(user.password);
     await page.getByRole('button',{name:'Login',exact:true}).click();
