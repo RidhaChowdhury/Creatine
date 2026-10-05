@@ -37,6 +37,11 @@ try{
     await fails(()=>db.query('SELECT public.drops_save_profile($1::jsonb)',[JSON.stringify({...profile,name:null})]),/required/);
     await fails(()=>db.query('INSERT INTO public.drops_preferences(user_id,preferences_json) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET preferences_json=excluded.preferences_json',[ownerA,JSON.stringify({waterPresets:[{id:'bad',amount:null,unit:'oz'}]})]),/Invalid water preset/);
     await fails(()=>db.query('UPDATE public.drops_profiles SET profile_json=$1 WHERE tracker_id=$2',[JSON.stringify({...profile,archived:null}),profile.id]),/required/);
+    const badPastPlan={id:'bad-past',effectiveFrom:'2025-01-01',mode:'scheduled',days:[1],doses:[],unit:'g',target:1,limit:null};
+    await fails(()=>db.query('UPDATE public.drops_profiles SET profile_json=$1 WHERE tracker_id=$2',[JSON.stringify({...profile,plans:[badPastPlan]}),profile.id]),/drops_profile_plan_units_compatible_ck/);
+    await db.exec("SET TIME ZONE 'UTC'");
+    const ownerDay=(await db.query("SELECT to_char(now() AT TIME ZONE 'America/Chicago','YYYY-MM-DD') AS day")).rows[0].day;
+    await fails(()=>db.query('UPDATE public.drops_profiles SET profile_json=$1 WHERE tracker_id=$2',[JSON.stringify({...profile,plans:[{...badPastPlan,id:'wrong-current-dimension',effectiveFrom:ownerDay}]}),profile.id]),/Incompatible current plan unit|drops_profile_plan_units_compatible_ck/);
     assert.deepEqual(await rpc(add,{kind:'add',input:entry}),add);
     assert.deepEqual(await rpc(add,{kind:'add',input:entry}),add);
     await fails(()=>rpc(add,{kind:'add',input:{...entry,amount:9}}),/different action/);
@@ -70,6 +75,7 @@ try{
     assert.equal(legacy.consumed_at,'2025-11-02 01:30:00'); assert.equal(legacy.consumed_at_utc,null); assert.equal(legacy.amount,12.34567); assert.equal(Date.parse(legacy.logged_at),Date.parse('2025-11-02T09:00:00Z'));
     const cp={id:'builtin:creatine',name:'Creatine',category:'supplement',metricType:'creatine',unit:'mg',savedDose:5000,archived:false,plans:[{id:'old',effectiveFrom:'2025-01-01',mode:'scheduled',days:[0,1,2,3,4,5,6],doses:[],unit:'g',target:5,limit:null}]};
     await db.query('SELECT public.drops_save_profile($1::jsonb)',[JSON.stringify(cp)]);
+    await db.query('UPDATE public.drops_profiles SET profile_json=$1 WHERE tracker_id=$2',[JSON.stringify(cp),cp.id]);
     assert.equal((await db.query('SELECT creatine_goal FROM public.user_settings')).rows[0].creatine_goal,5000);
     await fails(()=>db.query('SELECT public.drops_save_profile($1::jsonb)',[JSON.stringify({...cp,plans:[]})]),/Historical plans/);
     await db.query('INSERT INTO public.tracker_entries(user_id,id,tracker_id,name,unit,amount,consumed_at) VALUES($1,$2,$3,$4,$5,$6,$7)',[ownerA,'retain',profile.id,profile.name,'tablet',1,at]);

@@ -13,6 +13,8 @@ jest.mock('expo-sqlite',()=>{
   return {openDatabaseAsync:async()=>db,__testDb:db};
 });
 import * as repository from '../repository';
+import { convertAmount } from '../units';
+import { planForDay } from '../domain';
 import type { EntryInput, SaveProfileInput } from '../types';
 const testDb=(require('expo-sqlite') as any).__testDb;
 const water:EntryInput={trackerId:'builtin:water',amount:8,unit:'oz',consumedAt:'2026-10-01T12:00:00Z',note:'source'};
@@ -93,5 +95,29 @@ describe('unified repository with real isolated SQLite',()=>{
     expect(changed.plans[0]).toEqual(original.plans[0]);
     expect(changed.plans[1].effectiveFrom).toBe('2026-10-05');
     expect((await repository.loadSnapshot()).entries.find(e=>e.id===logged.after!.id)).toEqual(logged.after);
+  });
+  test('water display-unit changes reload with converted legacy goals and unchanged source plans/history',async()=>{
+    jest.setSystemTime(new Date('2026-10-06T18:00:00Z'));
+    const before=await repository.loadSnapshot();
+    const original=before.trackers.find(t=>t.id==='builtin:water')!;
+    const targetMl=convertAmount(80,'oz','mL'),limitMl=convertAmount(100,'oz','mL');
+    const metric=await repository.saveProfile({...original,unit:'mL',plan:{mode:'as-needed',days:[],doses:[],unit:'mL',target:targetMl,limit:limitMl}});
+    await repository.saveProfile({...metric,unit:'oz'});
+    let reloaded=await repository.loadSnapshot();
+    const waterProfile=reloaded.trackers.find(t=>t.id==='builtin:water')!;
+    const current=planForDay(waterProfile,'2026-10-06')!;
+    expect(waterProfile.unit).toBe('oz');
+    expect(waterProfile.plans).toEqual(metric.plans);
+    expect(current.unit).toBe('mL');expect(current.target).toBe(targetMl);
+    expect(convertAmount(current.target!,current.unit,waterProfile.unit)).toBeCloseTo(80,10);
+    expect(convertAmount(current.limit!,current.unit,waterProfile.unit)).toBeCloseTo(100,10);
+    const legacy=await testDb.getFirstAsync('SELECT drink_unit,water_goal FROM user_settings');
+    expect(legacy.drink_unit).toBe('oz');expect(legacy.water_goal).toBeCloseTo(80,10);
+    expect(reloaded.entries).toEqual(before.entries);
+    // An unrelated older settings writer cannot override the authoritative saved profile.
+    await testDb.runAsync('UPDATE user_settings SET drink_unit=?,water_goal=?',['mL',targetMl]);
+    reloaded=await repository.loadSnapshot();
+    expect(reloaded.trackers.find(t=>t.id==='builtin:water')).toEqual(waterProfile);
+    expect(reloaded.entries).toEqual(before.entries);
   });
 });
