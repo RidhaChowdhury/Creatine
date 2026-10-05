@@ -11,7 +11,7 @@ jobs:
       EXPO_NO_DOTENV: '1'
     steps:
       - uses: eas/checkout
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: node scripts/guard-preview.mjs
       - run: npm run verify
   build:

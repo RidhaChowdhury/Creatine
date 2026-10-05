@@ -33,7 +33,7 @@ jobs:
           cache-dependency-path: expo-app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: node scripts/retry-infrastructure.mjs -- npm ci
 
       - name: Check local Expo environment
         run: npm run doctor -- --local
@@ -45,7 +45,7 @@ jobs:
         run: npm run build:web
 
       - name: Install headless browser
-        run: npx playwright install --with-deps chromium
+        run: node scripts/retry-infrastructure.mjs -- npx playwright install --with-deps chromium
 
       - name: Exercise exported SQLite app
         run: npm run test:e2e:export
@@ -74,9 +74,9 @@ jobs:
           node-version-file: expo-app/.nvmrc
           cache: npm
           cache-dependency-path: expo-app/package-lock.json
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: npm run build:web
-      - run: npx playwright install chromium
+      - run: node scripts/retry-infrastructure.mjs -- npx playwright install chromium
       - name: Run reviewed visual comparisons
         run: node scripts/run-browser-tests.mjs --visual
       - uses: actions/upload-artifact@v4
@@ -106,7 +106,7 @@ jobs:
           cache-dependency-path: expo-app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: node scripts/retry-infrastructure.mjs -- npm ci
 
       - name: Export native bundles
         run: npm run build:native

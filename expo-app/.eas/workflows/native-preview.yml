@@ -1,8 +1,7 @@
 name: Drops native preview
-# One branch owns the shared native preview channel. PRs get independent web previews.
+# GitHub native-preview-dispatch.yml owns automatic triggering and serialization.
+# Direct EAS manual runs bypass that lock; use the GitHub dispatcher operationally.
 on:
-  push:
-    branches: ['main']
   workflow_dispatch: {}
 concurrency:
   cancel_in_progress: true
@@ -17,7 +16,7 @@ jobs:
       EXPO_NO_DOTENV: '1'
     steps:
       - uses: eas/checkout
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: node scripts/guard-preview.mjs
       - run: npm run verify
       - run: npm run build:native
@@ -77,6 +76,7 @@ jobs:
     after: [find_ios, find_android, build_ios, build_android]
     env:
       DROPS_ENV: preview
+      DROPS_VALIDATION_RESULT: passed
       DROPS_IOS_BUILD_ID: ${{ after.find_ios.outputs.build_id || after.build_ios.outputs.build_id }}
       DROPS_ANDROID_BUILD_ID: ${{ after.find_android.outputs.build_id || after.build_android.outputs.build_id }}
       DROPS_IOS_FINGERPRINT: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}

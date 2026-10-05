@@ -2,8 +2,10 @@ name: Drops web preview
 on:
   pull_request:
     branches: ['main']
+    paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
   push:
     branches: ['codex/drops-v01', 'main']
+    paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
   workflow_dispatch: {}
 concurrency:
   cancel_in_progress: true
@@ -18,12 +20,12 @@ jobs:
       EXPO_NO_DOTENV: '1'
     steps:
       - uses: eas/checkout
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: node scripts/guard-preview.mjs
       - run: npm run doctor -- --local
       - run: npm run verify
       - run: npm run build:web
-      - run: npx playwright install --with-deps chromium
+      - run: node scripts/retry-infrastructure.mjs -- npx playwright install --with-deps chromium
       - run: node scripts/run-browser-tests.mjs
       - uses: eas/upload_artifact
         with:
@@ -46,12 +48,13 @@ jobs:
     environment: preview
     env:
       DROPS_ENV: preview
+      DROPS_VALIDATION_RESULT: passed
       DROPS_DEPLOY_URL: ${{ needs.deploy.outputs.deploy_deployment_url }}
       DROPS_DEPLOY_ID: ${{ needs.deploy.outputs.deploy_identifier }}
       EXPO_NO_DOTENV: '1'
     steps:
       - uses: eas/checkout
-      - run: npm ci
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
       - run: node scripts/verify-deployment.mjs
       - run: npm run release:manifest
       - uses: eas/upload_artifact
