@@ -37,6 +37,27 @@ test('HTML fallback masquerading as WASM or font fails despite HTTP200',async()=
 });
 test('missing nosniff or isolation is an explicit failed evidence outcome',async()=>{
   const result=await verifyDeployment({target,env:{},fetchImpl:async()=>new Response('<html></html>',{headers:{'content-type':'text/html'}})});assert.equal(result.failureCode,'nosniff-html-missing');
+  const missingIsolation=await verifyDeployment({target,env:{},fetchImpl:async()=>new Response('<html></html>',{headers:{'content-type':'text/html','x-content-type-options':'nosniff'}})});assert.equal(missingIsolation.failureCode,'html-isolation-headers-missing');
+});
+
+test('documented static asset header absence passes content checks and records actual nosniff',async()=>{
+  const serve=server();
+  const result=await verifyDeployment({target,env:{},fetchImpl:async url=>{
+    const response=await serve(url);
+    if(/\.(?:js|ttf|wasm)$/.test(new URL(url).pathname))response.headers.delete('x-content-type-options');
+    return response;
+  }});
+  assert.equal(result.status,'passed');assert(result.checks.filter(x=>x.kind==='html').every(x=>x.nosniff));
+  assert(result.checks.filter(x=>x.kind!=='html').every(x=>x.nosniff===false));
+  assert(result.limitations.some(x=>x.includes('not static')));
+  assert.equal(result.headerScopeSource,'https://docs.expo.dev/router/web/server-headers/');
+});
+
+test('static assets without nosniff still fail invalid MIME and WASM bytes',async()=>{
+  for(const [file,body,type] of [['/bundle.js','<html>fallback</html>','text/html'],['/canvaskit.wasm','<html>fallback</html>','application/wasm']]) {
+    const result=await verifyDeployment({target,env:{},fetchImpl:server({[file]:()=>new Response(body,{headers:{'content-type':type}})})});
+    assert.equal(result.status,'failed');assert.match(result.failureCode,/mime|body/);
+  }
 });
 test('manifest preserves workflow IDs/hashes and treats ledger/rollback as unknown/unrun by default',async()=>{
   const root=await mkdtemp(path.join(tmpdir(),'drops-evidence-'));

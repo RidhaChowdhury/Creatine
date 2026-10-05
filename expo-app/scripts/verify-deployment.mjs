@@ -19,7 +19,7 @@ export function guardDeploymentUrl(value,env={}) {
 }
 export async function verifyDeployment({target,env=process.env,fetchImpl=fetch}={}) {
   const base=guardDeploymentUrl(target,env),checks=[],scripts=new Set(),fonts=new Set();
-  const evidence={asOf:new Date().toISOString(),target:base.href,deploymentId:env.DROPS_DEPLOY_ID??null,status:'failed',checks,limitations:['HTTP/asset probes do not establish login, account isolation, persistence, native behavior or rollback execution']};
+  const evidence={asOf:new Date().toISOString(),target:base.href,deploymentId:env.DROPS_DEPLOY_ID??null,status:'failed',checks,limitations:['HTTP/asset probes do not establish login, account isolation, persistence, native behavior or rollback execution','Expo Router configured server headers apply to HTML/API responses, not static scripts, fonts or WASM; asset nosniff is observed rather than required.'],headerScopeSource:'https://docs.expo.dev/router/web/server-headers/'};
   async function probe(input,kind) {
     let url=new URL(input,base),response;
     if(url.origin!==base.origin||url.username||url.password||url.search||url.hash)throw new ProbeError('cross-origin-or-unclean-asset');
@@ -32,7 +32,8 @@ export async function verifyDeployment({target,env=process.env,fetchImpl=fetch}=
       }break;
     }
     if(!response.ok)throw new ProbeError(`http-${kind}-failed`);
-    if(response.headers.get('x-content-type-options')!=='nosniff')throw new ProbeError(`nosniff-${kind}-missing`);
+    const nosniff=response.headers.get('x-content-type-options')==='nosniff';
+    if(kind==='html'&&!nosniff)throw new ProbeError('nosniff-html-missing');
     const contentType=(response.headers.get('content-type')??'').split(';')[0].trim(),bytes=Buffer.from(await response.arrayBuffer());
     if(kind==='html') {
       if(!contentType.includes('text/html')||!/<html\b/i.test(bytes.toString()))throw new ProbeError('html-body-or-mime-invalid');
@@ -41,7 +42,7 @@ export async function verifyDeployment({target,env=process.env,fetchImpl=fetch}=
     if(kind==='script'&&!/(?:javascript|ecmascript)/i.test(contentType))throw new ProbeError('script-mime-invalid');
     if(kind==='wasm'&&(!contentType.includes('application/wasm')||bytes.subarray(0,4).toString('hex')!=='0061736d'))throw new ProbeError('wasm-body-or-mime-invalid');
     if(kind==='font'&&!['00010000','4f54544f','774f4646','774f4632'].includes(bytes.subarray(0,4).toString('hex')))throw new ProbeError('font-body-invalid');
-    checks.push({kind,requestedPath:new URL(input,base).pathname,path:url.pathname,status:response.status,contentType,sha256:createHash('sha256').update(bytes).digest('hex'),nosniff:true});return bytes;
+    checks.push({kind,requestedPath:new URL(input,base).pathname,path:url.pathname,status:response.status,contentType,sha256:createHash('sha256').update(bytes).digest('hex'),nosniff});return bytes;
   }
   try {
     for(const route of routes) {const body=(await probe(route,'html')).toString();for(const match of body.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi))scripts.add(match[1]);}
