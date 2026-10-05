@@ -45,6 +45,8 @@ export async function runCloudBrowserQa({url,credentialsFile,configuration:provi
     assert.deepEqual(prohibited,[],'unexpected browser traffic prevents credential entry');
     await page.getByLabel('Email',{exact:true}).fill(user.email);
     await page.getByLabel('Password',{exact:true}).fill(user.password);
+    await expect(page.getByLabel('Email',{exact:true})).toHaveValue(user.email);
+    await expect(page.getByLabel('Password',{exact:true})).toHaveValue(user.password);
     await page.getByRole('button',{name:'Login',exact:true}).click();
     await expect(page.getByLabel('Name',{exact:true})).toBeVisible({timeout:60000});
     await page.getByLabel('Name',{exact:true}).fill('Disposable browser QA');

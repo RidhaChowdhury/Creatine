@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { TamaguiProvider } from 'tamagui';
 import { tamaguiConfig } from '@/tamagui.config';
 
 export function AppUIProvider({ children }: { children: React.ReactNode }) {
+   // Static HTML must not expose editable forms before their handlers attach.
+   // Keep the first web render identical on the server and client, including
+   // when font loading temporarily replaces the application during hydration.
+   const [clientReady, setClientReady] = useState(Platform.OS !== 'web');
+   useEffect(() => { setClientReady(true); }, []);
    const [fontsLoaded, fontError] = useFonts({
       Inter: require('@tamagui/font-inter/otf/Inter-Regular.otf'),
       InterMedium: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
@@ -19,10 +24,10 @@ export function AppUIProvider({ children }: { children: React.ReactNode }) {
    });
 
    if (fontError) throw fontError;
-   if (!fontsLoaded) {
+   if (!clientReady || !fontsLoaded) {
       return (
          <View style={{ flex: 1, backgroundColor: '#07070a', justifyContent: 'center' }}>
-            <ActivityIndicator color='#ffffff' accessibilityLabel='Loading fonts' />
+            <ActivityIndicator color='#ffffff' accessibilityLabel='Loading Drops' />
          </View>
       );
    }
