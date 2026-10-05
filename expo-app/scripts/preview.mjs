@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { projectRoot } from './project-env.mjs';
 
-const root = resolve(projectRoot, 'dist-pitwall');
+const root = resolve(projectRoot, process.env.DROPS_EXPORT_DIR || 'dist-pitwall');
 const port = Number(process.env.PORT || 4173);
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wasm': 'application/wasm', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.wav': 'audio/wav', '.ico': 'image/x-icon' };
 try { await stat(resolve(root, 'index.html')); }
@@ -12,6 +12,7 @@ const server = createServer(async (request, response) => {
   response.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
   response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('X-Drops-Preview', 'isolated-export');
   if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);

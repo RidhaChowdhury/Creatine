@@ -1,0 +1,18 @@
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+const server = spawn(process.execPath, ['scripts/preview.mjs'], { stdio: 'inherit', env: { ...process.env, PORT: '4173' } });
+try {
+  let ready = false;
+  for (let attempt = 0; attempt < 30; attempt++) {
+    if (server.exitCode !== null) throw new Error('Preview server exited before browser checks.');
+    try { const response = await fetch('http://127.0.0.1:4173'); ready = response.ok && response.headers.get('x-drops-preview') === 'isolated-export'; } catch {}
+    if (ready) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  if (!ready) throw new Error('Preview server did not become ready.');
+  const runner = spawn(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', process.argv.includes('--visual') ? '--grep' : '--grep-invert', '@visual'], {
+    stdio: 'inherit', env: { ...process.env, DROPS_E2E_URL: 'http://127.0.0.1:4173' }
+  });
+  const [code] = await once(runner, 'exit');
+  process.exitCode = code ?? 1;
+} finally { server.kill(); }

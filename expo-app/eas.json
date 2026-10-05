@@ -1,21 +1,65 @@
 {
-   "cli": {
-      "version": ">= 16.13.2",
-      "appVersionSource": "remote"
-   },
-   "build": {
-      "development": {
-         "developmentClient": true,
-         "distribution": "internal"
+  "cli": {
+    "version": "24.10.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "22.23.3",
+      "env": {
+        "EXPO_NO_DOTENV": "1"
       },
-      "preview": {
-         "distribution": "internal"
-      },
-      "production": {
-         "autoIncrement": true
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.0"
       }
-   },
-   "submit": {
-      "production": {}
-   }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "environment": "development"
+    },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "preview",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "simulator": {
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "preview",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "testflight": {
+      "extends": "base",
+      "distribution": "store",
+      "channel": "release-candidate",
+      "environment": "preview",
+      "autoIncrement": true
+    },
+    "production": {
+      "extends": "base",
+      "distribution": "store",
+      "channel": "production",
+      "environment": "production",
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "testflight": {
+      "ios": {
+        "appleTeamId": "TZ49JD65M9"
+      }
+    },
+    "production": {}
+  }
 }

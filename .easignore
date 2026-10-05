@@ -1,0 +1,25 @@
+# EAS archives from the Git root, even though eas.json is in expo-app.
+node_modules
+**/node_modules
+**/.expo
+**/.tamagui
+**/dist
+**/dist-pitwall
+**/dist-native
+**/qa
+**/artifacts
+**/test-results
+**/playwright-report
+**/.env*
+!expo-app/.env.example
+!expo-app/.env.test.example
+**/*.p8
+**/*.p12
+**/*.jks
+**/*.mobileprovision
+# Cloud CNG regenerates SDK54 projects; original native work stays in Git.
+expo-app/ios
+expo-app/android
+
+**/supabase/.temp
+**/dist-cloud

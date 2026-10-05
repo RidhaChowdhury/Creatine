@@ -15,7 +15,7 @@
     "postinstall": "setup-skia-web",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
-    "test:setup": "node --test scripts/__tests__/project-env.test.mjs",
+    "test:setup": "node --test scripts/__tests__/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "verify:db": "node scripts/verify-tracker-migration.mjs",
     "verify": "npm run typecheck && npm test && npm run test:setup && npm run verify:db && npm run verify:repository",
@@ -31,7 +31,8 @@
     "release:manifest": "node scripts/release-manifest.mjs",
     "deploy:check": "node scripts/verify-deployment.mjs",
     "test:e2e:export": "node scripts/run-browser-tests.mjs",
-    "test:cloud": "node scripts/cloud-qa.mjs"
+    "test:cloud": "node scripts/cloud-qa.mjs",
+    "test:e2e:cloud": "node scripts/cloud-browser-qa.mjs"
   },
   "jest": {
     "preset": "jest-expo",

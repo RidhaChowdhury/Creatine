@@ -1,0 +1,31 @@
+name: Drops manual TestFlight candidate
+on:
+  workflow_dispatch: {}
+defaults:
+  tools:
+    node: '22.23.3'
+jobs:
+  validate:
+    environment: preview
+    env:
+      EXPO_NO_DOTENV: '1'
+    steps:
+      - uses: eas/checkout
+      - run: npm ci
+      - run: node scripts/guard-preview.mjs
+      - run: npm run verify
+  build:
+    needs: [validate]
+    type: build
+    params:
+      platform: ios
+      profile: testflight
+  approve:
+    needs: [build]
+    type: require-approval
+  submit:
+    needs: [build, approve]
+    type: submit
+    params:
+      build_id: ${{ needs.build.outputs.build_id }}
+      profile: testflight
