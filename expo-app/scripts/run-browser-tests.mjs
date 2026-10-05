@@ -1,11 +1,13 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-const server = spawn(process.execPath, ['scripts/preview.mjs'], { stdio: 'inherit', env: { ...process.env, PORT: '4173' } });
+import { randomUUID } from 'node:crypto';
+const runId = randomUUID();
+const server = spawn(process.execPath, ['scripts/preview.mjs'], { stdio: 'inherit', env: { ...process.env, PORT: '4173', DROPS_EXPORT_DIR: 'dist-pitwall', DROPS_PREVIEW_RUN_ID: runId } });
 try {
   let ready = false;
   for (let attempt = 0; attempt < 30; attempt++) {
     if (server.exitCode !== null) throw new Error('Preview server exited before browser checks.');
-    try { const response = await fetch('http://127.0.0.1:4173'); ready = response.ok && response.headers.get('x-drops-preview') === 'isolated-export'; } catch {}
+    try { const response = await fetch('http://127.0.0.1:4173'); ready = response.ok && response.headers.get('x-drops-preview-run') === runId; } catch {}
     if (ready) break;
     await new Promise(resolve => setTimeout(resolve, 500));
   }

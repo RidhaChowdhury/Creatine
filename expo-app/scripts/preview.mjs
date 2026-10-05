@@ -13,6 +13,7 @@ const server = createServer(async (request, response) => {
   response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('X-Drops-Preview', 'isolated-export');
+  if (process.env.DROPS_PREVIEW_RUN_ID) response.setHeader('X-Drops-Preview-Run', process.env.DROPS_PREVIEW_RUN_ID);
   if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
