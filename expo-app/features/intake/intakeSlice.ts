@@ -1,13 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { DRINK_TYPES } from '@/lib/constants';
+import { localDay } from '@/lib/dateTime';
 import {
    fetchDrinkLogsDB,
    fetchCreatineLogsDB,
    insertIntakeLog,
    updateIntakeLogDB,
    deleteIntakeLogDB
-} from '@/lib/database';
+} from '@/lib/data';
 import { selectDrinkUnit, selectSupplementUnit } from '../settings/settingsSlice';
 
 const OZ_TO_ML = 29.5735;
@@ -48,6 +49,8 @@ type IntakeLog = {
 };
 
 type IntakeState = {
+   /** Request membership is cleared at account reset; late results cannot enter the next account. */
+   _pendingRequests: Record<string, true>;
    drinkLogs: IntakeLog[];
    creatineLogs: IntakeLog[];
    drinkStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
@@ -56,6 +59,7 @@ type IntakeState = {
 };
 
 const initialState: IntakeState = {
+   _pendingRequests: {},
    drinkLogs: [],
    creatineLogs: [],
    drinkStatus: 'idle',
@@ -89,7 +93,8 @@ const getTodayDate = () => {
 
 const get30DaysAgo = (): string => {
    const date = new Date();
-   date.setDate(date.getDate() - 30);
+   date.setDate(date.getDate() - 29);
+   date.setHours(0, 0, 0, 0);
 
    return formatDateTime(date);
 };
@@ -120,13 +125,14 @@ export const fetchCreatineLogs = createAsyncThunk<IntakeLog[], void, { state: Ro
 // Thunk to add drink log
 export const addDrinkLog = createAsyncThunk<
    IntakeLog,
-   { amount: number; consumable: DrinkType; unit?: string; consumed_at?: string },
+   { amount: number; consumable: DrinkType; unit?: string; consumed_at?: string; operationId?: string },
    { state: RootState }
->('intake/addDrinkLog', async ({ amount, consumable, unit = 'oz', consumed_at }) => {
+>('intake/addDrinkLog', async ({ amount, consumable, unit = 'oz', consumed_at, operationId }) => {
    const row = await insertIntakeLog({
       amount,
       unit,
       consumable,
+      id: operationId,
       consumed_at: consumed_at || formatDateTime(new Date())
    });
    return row as IntakeLog;
@@ -135,13 +141,14 @@ export const addDrinkLog = createAsyncThunk<
 // Thunk to add creatine log
 export const addCreatineLog = createAsyncThunk<
    IntakeLog,
-   { amount: number; unit?: string; consumed_at?: string },
+   { amount: number; unit?: string; consumed_at?: string; operationId?: string },
    { state: RootState }
->('intake/addCreatineLog', async ({ amount, unit = 'g', consumed_at }) => {
+>('intake/addCreatineLog', async ({ amount, unit = 'g', consumed_at, operationId }) => {
    const row = await insertIntakeLog({
       amount,
       unit,
       consumable: 'creatine',
+      id: operationId,
       consumed_at: consumed_at || formatDateTime(new Date())
    });
    return row as IntakeLog;
@@ -172,6 +179,7 @@ const intakeSlice = createSlice({
    initialState,
    reducers: {
       resetIntakeState: (state) => {
+         state._pendingRequests = {};
          state.drinkLogs = [];
          state.creatineLogs = [];
          state.drinkStatus = 'idle';
@@ -182,63 +190,86 @@ const intakeSlice = createSlice({
    extraReducers: (builder) => {
       builder
          // Fetch drink logs
-         .addCase(fetchDrinkLogs.pending, (state) => {
+         .addCase(fetchDrinkLogs.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.drinkStatus = 'loading';
             state.error = null;
          })
          .addCase(fetchDrinkLogs.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.drinkStatus = 'succeeded';
             state.drinkLogs = action.payload;
          })
          .addCase(fetchDrinkLogs.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to fetch drink logs';
          })
 
          // Fetch creatine logs
-         .addCase(fetchCreatineLogs.pending, (state) => {
+         .addCase(fetchCreatineLogs.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.creatineStatus = 'loading';
             state.error = null;
          })
          .addCase(fetchCreatineLogs.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'succeeded';
             state.creatineLogs = action.payload;
          })
          .addCase(fetchCreatineLogs.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'failed';
             state.error = action.error.message || 'Failed to fetch creatine logs';
          })
 
          // Add drink log
-         .addCase(addDrinkLog.pending, (state) => {
+         .addCase(addDrinkLog.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.drinkStatus = 'loading';
             state.error = null;
          })
          .addCase(addDrinkLog.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.drinkStatus = 'succeeded';
-            state.drinkLogs.unshift(action.payload);
+            if (!state.drinkLogs.some(row => row.id === action.payload.id)) state.drinkLogs.unshift(action.payload);
          })
          .addCase(addDrinkLog.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to add drink log';
          })
 
          // Add creatine log
-         .addCase(addCreatineLog.pending, (state) => {
+         .addCase(addCreatineLog.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.creatineStatus = 'loading';
             state.error = null;
          })
          .addCase(addCreatineLog.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'succeeded';
-            state.creatineLogs.unshift(action.payload);
+            if (!state.creatineLogs.some(row => row.id === action.payload.id)) state.creatineLogs.unshift(action.payload);
          })
          .addCase(addCreatineLog.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'failed';
             state.error = action.error.message || 'Failed to add creatine log';
          })
 
          // Update intake log
+         .addCase(updateIntakeLog.pending, (state, action) => { state._pendingRequests[action.meta.requestId] = true; })
          .addCase(updateIntakeLog.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             const updatedLog = action.payload;
 
             // Check if it's a drink
@@ -257,13 +288,18 @@ const intakeSlice = createSlice({
             state.drinkStatus = 'succeeded';
          })
          .addCase(updateIntakeLog.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'failed';
             state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to update intake log';
          })
 
          // Delete intake log
+         .addCase(deleteIntakeLog.pending, (state, action) => { state._pendingRequests[action.meta.requestId] = true; })
          .addCase(deleteIntakeLog.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             const { id, consumable } = action.payload;
 
             if (isDrinkType(consumable)) {
@@ -275,6 +311,8 @@ const intakeSlice = createSlice({
             state.drinkStatus = 'succeeded';
          })
          .addCase(deleteIntakeLog.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.creatineStatus = 'failed';
             state.drinkStatus = 'failed';
             state.error = action.error.message || 'Failed to delete intake log';
@@ -293,20 +331,20 @@ export const selectIntakeError = (state: RootState) => state.intake.error;
 
 export const selectTodayDrinkLogs = (state: RootState) => {
    const today = getTodayDate();
-   return state.intake.drinkLogs.filter((log) => log.consumed_at.startsWith(today));
+   return state.intake.drinkLogs.filter((log) => localDay(log.consumed_at) === today);
 };
 
 export const selectTodayCreatineLogs = (state: RootState) => {
    const today = getTodayDate();
-   return state.intake.creatineLogs.filter((log) => log.consumed_at.startsWith(today));
+   return state.intake.creatineLogs.filter((log) => localDay(log.consumed_at) === today);
 };
 
 export const selectDrinkLogsByDate = (state: RootState, date: string) => {
-   return state.intake.drinkLogs.filter((log) => log.consumed_at.startsWith(date));
+   return state.intake.drinkLogs.filter((log) => localDay(log.consumed_at) === date);
 };
 
 export const selectCreatineLogsByDate = (state: RootState, date: string) => {
-   return state.intake.creatineLogs.filter((log) => log.consumed_at.startsWith(date));
+   return state.intake.creatineLogs.filter((log) => localDay(log.consumed_at) === date);
 };
 
 export const selectWaterLogs = createSelector(
@@ -319,7 +357,7 @@ export const selectDailyWaterTotal = createSelector(
    (logs, drinkUnit) => {
       const today = getTodayDate();
       return +logs
-         .filter((log) => log.consumed_at.startsWith(today))
+         .filter((log) => localDay(log.consumed_at) === today)
          .reduce((sum, log) => {
             const amountInTargetUnit = convertToDrinkUnit(log.amount, log.unit, drinkUnit);
             // TODO, add hyrdration factors
@@ -335,7 +373,7 @@ export const selectDailyCreatineTotal = createSelector(
    (logs, supplementUnit) => {
       const today = getTodayDate();
       return logs
-         .filter((log) => log.consumed_at.startsWith(today))
+         .filter((log) => localDay(log.consumed_at) === today)
          .reduce((sum, log) => {
             const amountInTargetUnit = convertToSupplementUnit(
                log.amount,

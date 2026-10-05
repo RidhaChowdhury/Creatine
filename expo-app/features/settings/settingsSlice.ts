@@ -5,7 +5,7 @@ import {
    insertSettingsDB,
    updateSettingsDB,
    updateCreatineReminderTimeDB
-} from '@/lib/database';
+} from '@/lib/data';
 
 export type UserSettings = {
    name: string;
@@ -27,12 +27,15 @@ type OnboardingSettings = {
 };
 
 type SettingsState = UserSettings & {
+   /** Request membership is cleared at account reset; late results cannot enter the next account. */
+   _pendingRequests: Record<string, true>;
    initialFetchStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
    status: 'idle' | 'loading' | 'succeeded' | 'failed';
    error: string | null;
 };
 
 const initialState: SettingsState = {
+   _pendingRequests: {},
    name: '',
    height: 0,
    weight: 0,
@@ -93,6 +96,7 @@ const settingsSlice = createSlice({
    initialState,
    reducers: {
       resetSettingsState: (state) => {
+         state._pendingRequests = {};
          state.name = '';
          state.height = 0;
          state.weight = 0;
@@ -101,6 +105,7 @@ const settingsSlice = createSlice({
          state.supplement_unit = 'g';
          state.water_goal = 0;
          state.creatine_goal = 0;
+         state.creatine_reminder_time = null;
          state.initialFetchStatus = 'idle';
          state.status = 'idle';
          state.error = null;
@@ -108,12 +113,15 @@ const settingsSlice = createSlice({
    },
    extraReducers: (builder) => {
       builder
-         .addCase(fetchSettings.pending, (state) => {
+         .addCase(fetchSettings.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.initialFetchStatus = 'loading';
             state.status = 'loading';
             state.error = null;
          })
          .addCase(fetchSettings.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.initialFetchStatus = 'succeeded';
             state.status = 'succeeded';
             if (action.payload) {
@@ -121,45 +129,62 @@ const settingsSlice = createSlice({
             }
          })
          .addCase(fetchSettings.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.initialFetchStatus = 'failed';
             state.status = 'failed';
             state.error = action.error.message || 'Failed to fetch user settings';
          })
 
          .addCase(updateSettings.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'succeeded';
             Object.assign(state, action.payload);
          })
-         .addCase(updateSettings.pending, (state) => {
+         .addCase(updateSettings.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.status = 'loading';
             state.error = null;
          })
          .addCase(updateSettings.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'failed';
             state.error = action.error.message || 'Failed to update settings';
          })
 
-         .addCase(addSettings.pending, (state) => {
+         .addCase(addSettings.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.status = 'loading';
             state.error = null;
          })
          .addCase(addSettings.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'succeeded';
             Object.assign(state, action.payload);
          })
          .addCase(addSettings.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'failed';
             state.error = action.error.message || 'Failed to add settings';
          })
-         .addCase(updateCreatineReminderTime.pending, (state) => {
+         .addCase(updateCreatineReminderTime.pending, (state, action) => {
+            state._pendingRequests[action.meta.requestId] = true;
             state.status = 'loading';
             state.error = null;
          })
          .addCase(updateCreatineReminderTime.fulfilled, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'succeeded';
             Object.assign(state, action.payload);
          })
          .addCase(updateCreatineReminderTime.rejected, (state, action) => {
+            if (!state._pendingRequests[action.meta.requestId]) return;
+            delete state._pendingRequests[action.meta.requestId];
             state.status = 'failed';
             state.error = action.error.message || 'Failed to update creatine reminder time';
          });
@@ -170,7 +195,7 @@ export const { resetSettingsState } = settingsSlice.actions;
 
 export const selectSettings = (state: RootState) => state.settings;
 export const selectUserSettings = createSelector([selectSettings], (settings) => {
-   const { initialFetchStatus, status, error, ...userSettings } = settings;
+   const { initialFetchStatus, status, error, _pendingRequests, ...userSettings } = settings;
    return userSettings;
 });
 export const selectWaterGoal = (state: RootState) => state.settings.water_goal;

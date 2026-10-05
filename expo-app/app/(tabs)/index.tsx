@@ -1,215 +1,25 @@
-import { View, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useState, useEffect, useCallback, useContext, ChangeEvent } from 'react';
-import { Text } from '@/components/ui/text';
-import { Fab } from '@/components/ui/fab';
-import { GlassWater } from 'lucide-react-native';
-// import CreatineScoopIcon from '@/components/CreatineScoop';
-import IntakeDrawer from '@/components/IntakeDrawer';
-import { addDrinkLog, addCreatineLog } from '@/features/intake/intakeSlice';
-import { HStack } from '@/components/ui/hstack';
-import { Button, ButtonText } from '@/components/ui/button';
-import { WaveBackground } from '@/components/WaveBackground';
-import ConfettiCannon from 'react-native-confetti-cannon';
-import Animated, { FadeIn, FadeInDown, FadeOutDown } from 'react-native-reanimated';
-import { useFocusEffect } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectDailyWaterTotal, selectDailyCreatineTotal } from '@/features/intake/intakeSlice';
-import {
-   selectDrinkUnit,
-   selectInitialFetchStatus,
-   selectSupplementUnit,
-   selectWaterGoal,
-   updateCreatineReminderTime
-} from '@/features/settings/settingsSlice';
-import { NotificationService } from '@/lib/notifications';
-import { Modal, ModalBackdrop, ModalContent, ModalHeader } from '@/components/ui/modal';
-import { Heading } from '@/components/ui/heading';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import { Settings } from 'lucide-react-native';
+import { Button, Text, XStack, YStack } from 'tamagui';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDrops } from '@/features/drops/DropsProvider';
+import { useFeedback } from '@/components/FeedbackProvider';
+import { PitwallDashboard } from '@/components/pitwall/PitwallDashboard';
+import { WaterScene } from '@/components/pitwall/WaterScene';
+import { StateGate } from '@/components/drops/ui';
+import { PerformanceSheet } from '@/components/drops/PerformanceSheet';
+import { dayInZone } from '@/lib/drops/dates';
+import { convertAmount } from '@/lib/drops/units';
+import { planForDay } from '@/lib/drops/domain';
+import { evaluatePerformance } from '@/lib/drops/performance';
+export default function Home() { return <StateGate><HomeReady /></StateGate>; }
+function HomeReady() { const { snapshot, now } = useDrops(), f = useFeedback(), focused = useIsFocused(), router = useRouter(), inset = useSafeAreaInsets(), [performance, setPerformance] = useState(false); const s = snapshot!, day = dayInZone(now.toISOString(), s.preferences.timezone), water = s.trackers.find(t => t.id === 'builtin:water')!; const unit = water?.unit ?? 'oz', goal = planForDay(water, day)?.target ?? 0; const amount = s.entries.filter(e => e.trackerId === 'builtin:water' && e.day === day).reduce((n, e) => n + convertAmount(e.amount, e.unit, unit), 0); const previous = useRef(amount), [impulse, setImpulse] = useState<{
+    id: number;
+    origin: number;
+}>(); useEffect(() => { if (amount !== previous.current) {
+    setImpulse({ id: Date.now(), origin: .5 });
+    previous.current = amount;
+} }, [amount]); const model = evaluatePerformance(s, now); const light = goal <= 0 || amount / goal < .9; return <YStack flex={1} minHeight={0}><PitwallDashboard waterAmount={amount} waterGoal={goal} waterLimit={planForDay(water, day)?.limit} waterUnit={unit} onSetGoal={() => router.push('/(tabs)/settings')} renderWater={layout => <WaterScene {...layout} amount={amount} active={focused && f.active && !performance} reducedMotion={f.reducedMotion} impulse={impulse}/>}/><XStack position="absolute" top={inset.top + 22} left={24} right={24} justifyContent="space-between" alignItems="center"><Text fontFamily="$brand" fontWeight="800" fontSize={26} color={light ? '#e9e9e9' : '#0c0c0c'}>DROPS.</Text><Button aria-label="Settings" minWidth={44} minHeight={44} backgroundColor="transparent" borderWidth={0} onPress={() => router.push('/(tabs)/settings')}><Settings size={20} color={light ? '#e9e9e9' : '#0c0c0c'}/></Button></XStack><Button position="absolute" left={24} right={24} bottom={inset.bottom + 116} minHeight={68} height="auto" paddingVertical={16} backgroundColor="#0c0c0c" borderRadius={0} borderWidth={0} hoverStyle={{backgroundColor:'#0c0c0c'}} pressStyle={{opacity:0.8}} onPress={() => setPerformance(true)} aria-label="Open Performance breakdown"><XStack flex={1} justifyContent="space-between" alignItems="center" gap={12}><YStack flex={1} gap={5}><Text color="#aaa" fontFamily="$mono" fontSize={11}>PERFORMANCE · ESTIMATE</Text><Text color="#e9e9e9" fontSize={13}>{model.label}</Text></YStack>{model.score !== null && <Text fontFamily="$display" fontSize={40} color="#e9e9e9">{Math.round(model.score)}</Text>}</XStack></Button><PerformanceSheet open={performance} onOpenChange={setPerformance}/></YStack>; }
 
-const Today = () => {
-   const dispatch = useAppDispatch();
-
-   const waterAmount = useAppSelector(selectDailyWaterTotal);
-   const creatineAmount = useAppSelector(selectDailyCreatineTotal);
-   const waterGoal = useAppSelector(selectWaterGoal);
-   const drinkUnit = useAppSelector(selectDrinkUnit);
-   const supplementUnit = useAppSelector(selectSupplementUnit);
-
-   const [showWaterSheet, setShowWaterSheet] = useState(false);
-   const [sheetInitial, setSheetInitial] = useState<any>(undefined);
-   const [animationKey, setAnimationKey] = useState(0);
-   const [showModal, setShowModal] = useState(false);
-   const [date, setDate] = useState(new Date());
-
-   const getTimeString = (date: Date) => {
-      const hh = date.getHours().toString().padStart(2, '0');
-      const mm = date.getMinutes().toString().padStart(2, '0');
-      const ss = date.getSeconds().toString().padStart(2, '0');
-      const timeString = `${hh}:${mm}:${ss}`;
-
-      return timeString;
-   };
-
-   const initialFetchStatus = useAppSelector(selectInitialFetchStatus);
-
-   // in the event we come from onboarding (or our fetch status wins the race before our component mounts)
-   useEffect(() => {
-      if (initialFetchStatus === 'succeeded') {
-         (async () => {
-            const { showReminderTimeModal } = await NotificationService.initialize();
-            if (showReminderTimeModal) {
-               setShowModal(true);
-            }
-         })();
-      }
-   }, []);
-
-   // notifications
-   useEffect(() => {
-      if (initialFetchStatus === 'succeeded') {
-         (async () => {
-            const { showReminderTimeModal } = await NotificationService.initialize();
-            if (showReminderTimeModal) {
-               setShowModal(true);
-            }
-         })();
-      }
-   }, [initialFetchStatus]);
-
-   useFocusEffect(
-      useCallback(() => {
-         setAnimationKey((prevKey) => prevKey + 1); // Change key on every focus
-      }, [])
-   );
-
-   useEffect(() => {
-      if (waterAmount >= waterGoal) {
-         const triggerHaptic = async () => {
-            for (let i = 0; i < 3; i++) {
-               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-               await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay between buzzes
-            }
-         };
-         triggerHaptic();
-      }
-   }, [waterAmount, waterGoal]);
-
-   const onChange = (event: DateTimePickerEvent, selectedDate: Date | undefined) => {
-      const currentDate = selectedDate || date;
-      setDate(currentDate);
-   };
-
-   return (
-      <SafeAreaView className='bg-background-0 flex-1'>
-         <WaveBackground
-            progressPercent={waterAmount / waterGoal}
-            offsetPercentage={2}
-            // waveColor="rgba(100, 200, 255, 0.6)"
-         />
-
-         {waterAmount >= waterGoal && (
-            <ConfettiCannon
-               count={100}
-               origin={{ x: -10, y: 0 }}
-               autoStartDelay={600}
-               fadeOut={true}
-            />
-         )}
-
-         {/* Creatine Section */}
-         <View className='absolute top-20 left-5'>
-            <View className='flex-row items-end justify-end gap-1'>
-               <Text className='text-3xl font-bold text-white'>{creatineAmount}</Text>
-               <Text className='text-xl text-neutral-300 pb-1'>{supplementUnit}</Text>
-            </View>
-         </View>
-         {/* Water Section */}
-         <View className='flex-1 justify-center items-center'>
-            <View className='flex-row items-end gap-2'>
-               <Text className='text-5xl font-bold text-white'>{waterAmount}</Text>
-               <Text className='text-xl text-neutral-300 pb-1'>{drinkUnit}</Text>
-            </View>
-         </View>
-
-         <HStack
-            className='absolute bottom-4 right-4'
-            space='xl'>
-            {/* Water Button (right) */}
-            <Animated.View
-               key={`water-${animationKey}`}
-               entering={FadeInDown.duration(1000).delay(100).springify().damping(12)}>
-               <Button
-                  size='lg'
-                  className='bg-primary-0 rounded-full w-20 h-20'
-                  onPress={() => {
-                     // open water sheet with current time
-                     setSheetInitial({ consumed_at: new Date().toISOString() });
-                     setShowWaterSheet(true);
-                  }}>
-                  <GlassWater
-                     color={'white'}
-                     size={32}
-                  />
-               </Button>
-            </Animated.View>
-         </HStack>
-
-         {/* Unified Intake Drawer (water-centric with optional creatine) */}
-         <IntakeDrawer
-            isOpen={showWaterSheet}
-            initial={sheetInitial}
-            onClose={() => {
-               setShowWaterSheet(false);
-               setSheetInitial(undefined);
-            }}
-         />
-
-         {/* Creatine reminder time modal */}
-         <Modal
-            isOpen={showModal}
-            onClose={() => {
-               setShowModal(false);
-            }}
-            size='md'
-            closeOnOverlayClick={false}>
-            <ModalBackdrop />
-            <ModalContent>
-               <ModalHeader>
-                  <Heading
-                     size='md'
-                     className='text-typography-950'>
-                     Lock in your daily creatine reminder!
-                  </Heading>
-               </ModalHeader>
-               <View className='flex-row mt-4'>
-                  <View className='w-1/2'>
-                     <DateTimePicker
-                        testID='timePicker'
-                        value={date}
-                        mode='time'
-                        display='default'
-                        onChange={onChange}
-                     />
-                  </View>
-                  <Button
-                     className='w-1/2'
-                     onPress={async () => {
-                        const reminderTimeString = getTimeString(date);
-                        dispatch(
-                           updateCreatineReminderTime({ creatineReminderTime: reminderTimeString })
-                        );
-                        await NotificationService.scheduleCreatineReminder(reminderTimeString);
-                        setShowModal(false);
-                     }}>
-                     <ButtonText>Submit</ButtonText>
-                  </Button>
-               </View>
-            </ModalContent>
-         </Modal>
-      </SafeAreaView>
-   );
-};
-
-export default Today;
