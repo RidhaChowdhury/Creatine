@@ -67,16 +67,16 @@ for (const initial of windows) {
 
     await page.getByRole('button', { name: 'Insights', exact: true }).click();
     await page.getByRole('button', { name: '30 days', exact: true }).click();
-    await page.getByRole('button', { name: 'Previous chart point', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Previous', exact: true }).first().click();
     const selected = page.getByText(/^2026-10-03 · 24 oz · Recorded/);
     for (const size of remaining) {
       await resize(page, size);
       await expect(selected).toBeVisible();
       await expect(page.getByText('2/30', { exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Next chart point', exact: true }).first()).toBeEnabled();
+      await expect(page.getByRole('button', { name: 'Next', exact: true }).first()).toBeEnabled();
       expect(new URL(page.url()).pathname).toBe('/metrics');
     }
-    await page.getByRole('button', { name: 'Next chart point', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Next', exact: true }).first().click();
     await expect(page.getByText(/^2026-10-04 · 8 oz · Recorded/)).toBeVisible();
     await testInfo.attach(`responsive Insights ${initial.width}x${initial.height}`, {
       body: await page.screenshot(), contentType: 'image/png',

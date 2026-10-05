@@ -17,7 +17,7 @@ export async function onboard(page:Page){
  await page.evaluate(()=>document.fonts.ready);
  await expect(page.locator('canvas')).toBeVisible();
 }
-export async function openAdd(page:Page){await page.getByRole('button',{name:'Log intake',exact:true}).first().click();await expect(page.getByRole('dialog',{name:'Log intake',exact:true})).toBeVisible();}
+export async function openAdd(page:Page){await page.getByRole('navigation',{name:'Main navigation',exact:true}).getByRole('button',{name:'Log intake',exact:true}).click();await expect(page.getByRole('dialog',{name:'Log intake',exact:true})).toBeVisible();}
 export async function assertNoOverflow(page:Page){expect(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth)).toBeLessThanOrEqual(1);}
 export async function waterTarget(page:Page,value:string){
  await page.getByRole('button',{name:'Settings',exact:true}).click();
