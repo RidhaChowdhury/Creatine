@@ -1,0 +1,68 @@
+appId: ${MAESTRO_APP_ID}
+name: Drops isolated-account persistence smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Login to your account"
+    timeout: 60000
+- tapOn: "Email"
+- inputText:
+    text: ${MAESTRO_EMAIL}
+    label: Enter isolated fixture email
+- tapOn: "Password"
+- inputText:
+    text: ${MAESTRO_PASSWORD}
+    label: Enter isolated fixture password
+- hideKeyboard
+- tapOn: "Login"
+- extendedWaitUntil:
+    visible: "Your profile|Log intake"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Your profile"
+    commands:
+      - tapOn: "Name"
+      - inputText:
+          text: ${MAESTRO_NAME}
+          label: Enter isolated fixture display name only
+      - hideKeyboard
+      - scrollUntilVisible:
+          element:
+            text: "Continue"
+          direction: DOWN
+      - tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Log intake"
+    timeout: 60000
+- tapOn: "History"
+- assertVisible: "No entries in this range."
+- tapOn: "Supps"
+- assertVisible: "Log intake"
+- tapOn: "Insights"
+- assertVisible: "Log intake"
+- tapOn: "Home"
+- tapOn: "Log intake"
+- tapOn: "Add 8 oz water"
+- tapOn: "Done"
+- extendedWaitUntil:
+    visible: "Added Water.*8 oz"
+    timeout: 30000
+- tapOn: "Dismiss receipt"
+- tapOn: "History"
+- assertVisible: "Edit Water, 8 oz, .*"
+- takeScreenshot: evidence/history-after-water8
+- killApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Log intake"
+    timeout: 60000
+- assertNotVisible: "Login to your account"
+- tapOn: "History"
+- assertVisible: "Edit Water, 8 oz, .*"
+- assertNotVisible: "No entries in this range."
+- takeScreenshot: evidence/history-after-relaunch
+- tapOn: "Home"
+- takeScreenshot: evidence/home-after-relaunch

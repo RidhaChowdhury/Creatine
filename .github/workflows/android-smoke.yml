@@ -1,0 +1,73 @@
+name: Drops manual Android smoke
+on:
+  workflow_dispatch:
+    inputs:
+      apk_url:
+        description: Existing isolated EAS preview APK (https://expo.dev/artifacts/eas/*.apk)
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: drops-manual-android-smoke
+  cancel-in-progress: false
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Validate existing APK URL
+        working-directory: expo-app
+        env:
+          DROPS_APK_URL: ${{ inputs.apk_url }}
+        run: node scripts/native-smoke.mjs validate-url
+      - name: Fetch APK and pinned Maestro CLI
+        shell: bash
+        env:
+          DROPS_APK_URL: ${{ inputs.apk_url }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$RUNNER_TEMP/drops.apk" "$DROPS_APK_URL"
+          curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$RUNNER_TEMP/maestro.zip" https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.11.0/maestro.zip
+          printf '%s  %s\n' '5384593cb4e7a106489e75a821d157dd43f4e438df6bc308b72e82c685e1283a' "$RUNNER_TEMP/maestro.zip" | sha256sum --check --status
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro-cli"
+          chmod +x "$RUNNER_TEMP/maestro-cli/maestro/bin/maestro"
+          printf '%s\n' "$RUNNER_TEMP/maestro-cli/maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable hosted-runner KVM
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run single hosted Android emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        env:
+          MAESTRO_APP_ID: com.samlau25.expoapp
+          MAESTRO_EMAIL: ${{ secrets.DROPS_NATIVE_QA_EMAIL }}
+          MAESTRO_PASSWORD: ${{ secrets.DROPS_NATIVE_QA_PASSWORD }}
+          MAESTRO_NAME: Native QA
+          MAESTRO_CLI_NO_ANALYTICS: '1'
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: node expo-app/scripts/native-smoke.mjs run
+      - name: Upload allowlisted post-login evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-smoke-safe-evidence
+          path: expo-app/artifacts/native-smoke-safe/
+          if-no-files-found: ignore
+          retention-days: 3
