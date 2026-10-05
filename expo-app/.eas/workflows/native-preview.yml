@@ -87,6 +87,6 @@ jobs:
       - run: node scripts/release-manifest.mjs
       - uses: eas/upload_artifact
         with:
-          path: artifacts
+          path: expo-app/artifacts
           name: native-release-evidence
           type: other

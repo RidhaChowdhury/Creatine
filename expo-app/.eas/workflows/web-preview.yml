@@ -29,7 +29,7 @@ jobs:
       - run: node scripts/run-browser-tests.mjs
       - uses: eas/upload_artifact
         with:
-          path: artifacts
+          path: expo-app/artifacts
           name: web-validation
           type: other
   deploy:
@@ -59,6 +59,6 @@ jobs:
       - run: npm run release:manifest
       - uses: eas/upload_artifact
         with:
-          path: artifacts
+          path: expo-app/artifacts
           name: web-release-evidence
           type: other

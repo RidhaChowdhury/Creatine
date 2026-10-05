@@ -33,7 +33,7 @@ jobs:
         - run: node scripts/guard-production.mjs
         - uses: eas/upload_artifact
           with:
-            path: artifacts/production-backend-verification.json
+            path: expo-app/artifacts/production-backend-verification.json
             name: production-export-backend-guard
             type: other
   verify_candidate:
@@ -52,7 +52,7 @@ jobs:
       - run: node scripts/release-manifest.mjs
       - uses: eas/upload_artifact
         with:
-          path: artifacts
+          path: expo-app/artifacts
           name: production-candidate-evidence
           type: other
   approve:
