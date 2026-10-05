@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Crypto from 'expo-crypto';
@@ -9,6 +9,7 @@ import { PitwallSheet } from '@/components/pitwall/PitwallOverlays';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchSettings, selectUserSettings } from '@/features/settings/settingsSlice';
 import { saveAccountName } from '@/lib/drops/repository';
+import { addSampleHistory } from '@/lib/drops/sample-history';
 import { signOutAccount, deleteAccount } from '@/lib/drops/account';
 import { supabase } from '@/lib/supabase';
 import { compatibleUnits, convertAmount } from '@/lib/drops/units';
@@ -30,7 +31,22 @@ export default function SettingsScreen() {
   const [zone, setZone] = useState(''), [halfLife, setHalfLife] = useState(''), [bedtime, setBedtime] = useState('');
   const [prior, setPrior] = useState<PriorUse>({ creatine: 'unknown', caffeine: 'unknown' });
   const [start, setStart] = useState(''), [dose, setDose] = useState('');
+  const samplePending = useRef(false);
+  const [sampleBusy, setSampleBusy] = useState(false), [sampleProgress, setSampleProgress] = useState<string | null>(null), [sampleError, setSampleError] = useState<string | null>(null);
+  const localPreview = Platform.OS === 'web' && !supabase && typeof window !== 'undefined' && ['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname);
   const snapshot = drops.snapshot;
+  async function addSamples() {
+    if (!localPreview || samplePending.current || busy) return;
+    samplePending.current = true; setSampleBusy(true); setSampleError(null); setSampleProgress('Preparing 30 days of sample history…');
+    try {
+      const result = await addSampleHistory({ onProgress: (completed, total) => setSampleProgress(`Adding sample history… ${completed}/${total}`) });
+      setSampleProgress(`${result.added} sample entries added · ${result.existing} already present · ${result.fromDay} — ${result.toDay}. Existing records and settings preserved.${result.skippedDays ? ` ${result.skippedDays} tracker days skipped to preserve real entries or unavailable trackers.` : ''}`);
+    } catch (e) {
+      setSampleError((e as Error).message || 'Unable to finish adding sample history. Completed sample entries are retained; retry continues without duplicates.');
+    } finally {
+      try { await drops.refresh(); } finally { samplePending.current = false; setSampleBusy(false); }
+    }
+  }
   function selectTracker(tracker: DropsTracker) {
     setTrackerId(tracker.id); setUnit(tracker.unit);
     const plan = planForDay(tracker, dayInZone(drops.now, snapshot!.preferences.timezone));
@@ -86,6 +102,12 @@ export default function SettingsScreen() {
   }
   return <StateGate><Screen title="Settings">
     {(['Profile','Targets','Units','Water presets','Reminders','Motion','Sound','Haptics','Intake context'] as Section[]).map(item => <YStack key={item} paddingVertical={12} borderBottomWidth={1} borderColor="#333"><Action label={item} onPress={() => open(item)} /></YStack>)}
+    {localPreview && <YStack gap={10} paddingVertical={12} borderBottomWidth={1} borderColor="#333">
+      <Action label={sampleBusy ? 'Adding sample history…' : 'Add 30 days of sample history'} disabled={sampleBusy || busy} onPress={() => void addSamples()} />
+      <Text color="#aaa">Local preview only. Sample water and supplement entries are labeled as sample data. Existing records and settings are preserved. Repeating this action avoids duplicate samples.</Text>
+      {sampleProgress && <Text color="#aaa" role="status">{sampleProgress}</Text>}
+      <Failure message={sampleError} />
+    </YStack>}
     {supabase && <><Action label={busy ? 'Signing out…' : 'Sign out'} disabled={busy} onPress={() => void run(async () => { await signOutAccount(); router.replace('/'); })} />
     <Action label="Delete account" onPress={() => open('Delete account')} /></>}<Failure message={section ? null : error} />
     <PitwallSheet open={section !== null} onOpenChange={value => { if (!value && !busy) { setSection(null); setPassword(''); setConfirmation(''); } }} title={section ?? 'Settings'}>
