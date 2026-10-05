@@ -1,6 +1,6 @@
 # Drops release operations — prepared, with open gates
 
-Run commands from `expo-app/` using Node22.23.3, the checked-in lockfile and EAS CLI24.10.0. This runbook prepares operations; it does not authorize production changes, create a deployed URL, or certify native/device acceptance. Use [IMPLEMENTATION-REPORT.md](IMPLEMENTATION-REPORT.md) for criterion-level outcomes and append actual operation IDs/results there.
+Run commands from `expo-app/` using Node22.23.3, the checked-in lockfile and EAS CLI 24.10.0. This runbook prepares operations; it does not authorize production changes, create a deployed URL, or certify native/device acceptance. Use [IMPLEMENTATION-REPORT.md](IMPLEMENTATION-REPORT.md) for criterion-level outcomes and append actual operation IDs/results there.
 
 On this Windows workstation, prepend the existing runtime before commands:
 
@@ -16,12 +16,12 @@ The existing cached EAS entry is `C:/Users/ridha/AppData/Local/npm-cache/_npx/c5
 | --- | --- | --- |
 | Verification | Lead reported18 Jest suites/113 tests and both database verifiers passed. After delegated evidence changes, `npm run test:setup` independently passes18 Node checks | Final integrated rerun after latest source changes; record commands/timestamps. No new full-suite pass is inferred from the narrow/script reruns. |
 | Local export | Atomic export wrapper passed a new local web build while preview8082 remained available | Final visual review remains open; export success is not visual acceptance. |
-| Android | EAS build `b1e6cbfc-ccc7-4d0a-bf1a-3f5b6b44da68` FINISHED. APK: `https://expo.dev/artifacts/eas/pvaIb9GHAQB2unxwcSdg2ZzEZq5IsqhGQZOT0rpyxLs.apk` | It was based on dirty snapshot1356031 before latest canvas/unit UI fixes. Use a compatible update or new final build and record the exact tested source/runtime before release. No installed result exists here. |
-| iOS simulator | Build `6bf2e1b4-da2e-4a4d-a236-7a6dd8aff12d` created; status not yet observed at this checkpoint | Retrieve actual result and simulator smoke evidence. |
+| Android | Replacement build `6cb79077-c6fe-41e3-8d17-4b0ee7c438aa` FINISHED at 2026-10-05T04:45:00.464Z; API 35 hosted smoke run 37264973906 passed actual APK login/write/History/relaunch | Compare final JS/source and preview-environment fingerprint before OTA. Physical-device/notification acceptance remains unrun; older build b1e6cbfc is historical compile evidence. |
+| iOS simulator | Replacement `90587a7f-6ecf-46fa-8ff0-b7ac29b7400d` FINISHED at 2026-10-05T04:52:56.341Z after one bounded remote-upload retry; direct expo-asset fixed Doctor 18/18 | No simulator execution. Build fingerprint is 7c626037e3f0667c14085f23cf191205a2ab8988; build:view runtimeVersion is null, so verify embedded runtime rather than equating metadata fields. |
 | iOS physical | Lead reported expired signing certificate/provisioning profile | Renew/validate signing assets and produce/install compatible binary. Physical iPad is not registered/tested. |
 | Hosted web | No immutable deployed URL/result recorded at this checkpoint | Deploy preview, verify exact returned URL, run real isolated cloud browser gate, retain rollback IDs. |
 | EAS auto triggers | Existing project query returned `githubRepository:null`; native auto triggering is now delegated to prepared GitHub dispatcher | Native dispatcher needs repository EXPO_TOKEN and a pushed/discoverable workflow. Direct EAS web push/PR triggers still require Expo GitHub connection. No dispatcher execution is claimed. |
-| Native automation | EAS Maestro jobs rejected for paid-plan entitlement; GitHub manual Android alternative prepared and fixture secrets configured by lead | Emulator workflow remains unrun. Use already-authorized GitHub runner alternative; no paid upgrade. |
+| Native automation | EAS Maestro remains paid-plan-blocked. GitHub hosted Android smoke passed; same-repository codex/drops-v01 PR trigger and manual entry exist | New fixture pre-reset/finally-cleanup passed guard tests and two real owner resets; updated hosted lifecycle rerun remains pending. No local emulator or paid upgrade. |
 
 ## Environment and secret boundaries
 
@@ -121,6 +121,34 @@ eas build --platform ios --profile preview
 
 The preview workflow computes a fingerprint, searches compatible internal binaries, builds missing platforms and only publishes when both platform IDs exist. Fixing iOS signing is required to complete that workflow even if an Android build already exists. Match the runtime recorded by the actual binary to the fingerprint/update; do not invent equality from configuration alone. Re-test the final JavaScript update against the exact built native modules. Native module/plugin/config changes require a new binary; OTA cannot replace native code or change the binary's embedded channel. [Runtime compatibility](https://docs.expo.dev/eas-update/runtime-versions/).
 
+Read-only channel inspection found `preview` mapped to branch `preview`, channel ID `01a10a18-8ba5-77a6-afee-b1ff95c00413` and branch ID `01a10a18-8af9-741e-baf3-4be4b76ac2c6`, with no existing update groups. Therefore no known-good OTA group is currently available for republish rollback. The simulator profile shares preview channel/environment, but it does not satisfy the workflow's physical iOS preview profile/signing gate. TestFlight stays on `release-candidate` with preview backend; production stays on `production` with production backend.
+
+Prepared read-only preflight, using the same reviewed clean checkout and EAS preview variables as the binary (commands below have not been executed by this preparation):
+
+```text
+eas channel:view preview --json
+eas build:view 6cb79077-c6fe-41e3-8d17-4b0ee7c438aa --json
+eas build:view 90587a7f-6ecf-46fa-8ff0-b7ac29b7400d --json
+eas fingerprint:generate --build-profile preview --platform android --json --non-interactive
+eas fingerprint:generate --build-profile simulator --platform ios --json --non-interactive
+```
+
+Compare the Android fingerprint to 137fab6f653ec9e66961875d1f86aad51da08277 and simulator fingerprint to 7c626037e3f0667c14085f23cf191205a2ab8988. The Android safe build record also records that runtime; the simulator record has runtimeVersion null. Check actual embedded update configuration/binary before any runtime-specific iOS rollback. Do not consume a local `.env.test.local` export as OTA evidence, or pass `--skip-bundler` on an old/dist-local bundle. Preview guards must validate the intended Drops Test endpoint before publishing; current native update hook does so.
+
+When separately authorized, an Android-only preview update can avoid the still-blocked physical iOS preview build. Coordinate it with the existing native dispatcher lock/operator single-run policy because direct CLI publishing bypasses GitHub serialization. Pinned CLI 24.10.0 supports the explicit fresh-export command:
+
+```text
+eas update --channel preview --environment preview --platform android --input-dir dist-preview-ota --emit-metadata --message "Reviewed Drops preview Android update" --json --non-interactive
+```
+
+Retain returned update group ID, per-update platform/runtime/fingerprint, metadata and asset hashes, exact source SHA, channel mapping and successful installed update/relaunch evidence. No OTA publication or update-installation acceptance is claimed here. Initially prepare embedded rollback for the independently verified Android runtime:
+
+```text
+eas update:roll-back-to-embedded --channel preview --runtime-version 137fab6f653ec9e66961875d1f86aad51da08277 --platform android --message "Reviewed Android embedded rollback" --json --non-interactive
+```
+
+That command is a remote mutation to execute only after rollback authorization and confirmed embedded runtime/schema compatibility. Do not use the iOS fingerprint as an unverified runtime argument. Once a verified known-good OTA group exists, use the republish alternative below with its actual retained group ID. Do not force-end an active rollout until its state and intended rollback are reviewed. After either rollback, exercise installed reload, owner data retention and auth; alias/update metadata alone is not rollback execution evidence.
+
 Before each native publish retain the previous known-good update group, per-platform build IDs/fingerprints, embedded update version, channel/branch mapping and supported schema. A compatible OTA rollback republishes a known-good update to the affected channel, or rolls back to the binary's embedded update for the exact runtime. Confirm the chosen old update still works with the additive schema, and verify an installed app after receiving it:
 
 ```text
@@ -136,13 +164,13 @@ iOS signing uses team `TZ49JD65M9` and bundle ID `com.samlau25.expo-app`. Examin
 
 Direct EAS web auto triggers require the Expo GitHub App installed/authorized for `RidhaChowdhury/Creatine`, the existing Expo project linked to that repository, workflow files at the pushed reference, correct project/root directory discovery and preview EAS variables. Confirm project identity, GitHub connection and trigger configuration through a real observed run. Current `githubRepository:null` means this activation is incomplete. Validate workflow schema with pinned EAS CLI before dispatch; preserve the known paid Maestro rejection rather than upgrading the plan.
 
-Web workflow triggers PRs to main and pushes to main/codex branch; it validates a local SQLite export then separately deploys a cloud preview and probes it. Those are distinct bundles/gates. PR and push refs can duplicate work. Native preview can incur two binary builds when fingerprints have no match. TestFlight's approval is after build, so it gates submission rather than build cost. Monitor existing account limits before initiating repeated runs.
+Web workflow triggers relevant app-path PRs to main and relevant app-path pushes to main; docs-only changes and codex branch pushes do not trigger repeated heavy QA. It validates a local SQLite export then separately deploys a cloud preview and probes it. Those are distinct bundles/gates. GitHub CI and Android PR smoke also filter relevant app paths. Native preview can incur two binary builds when fingerprints have no match. TestFlight's approval is after build, so it gates submission rather than build cost. Monitor existing account limits before initiating repeated runs.
 
-Root `.github/workflows/native-preview-dispatch.yml` now owns automatic native main pushes and manual native dispatch. Its fixed concurrency group `drops-native-preview`, `cancel-in-progress:false` and EAS CLI `--wait` serialize normal GitHub dispatch runs across refs until remote completion. It uses Node22.23.3, locked dependencies and pinned CLI24.10.0. EAS native-preview no longer has a push trigger, preventing a duplicate automatic publisher. Configure an owner-authorized repository `EXPO_TOKEN` secret before activation; the prepared job fails clearly if absent and never prints it. No token was created/configured or dispatcher executed by this preparation. It uploads the checked-out local project via CLI, so it does not rely on the currently missing Expo GitHub connection; `--ref` is intentionally omitted. Root archive exclusions still apply.
+Root `.github/workflows/native-preview-dispatch.yml` now owns automatic native main pushes and manual native dispatch. Its fixed concurrency group `drops-native-preview`, `cancel-in-progress:false` and EAS CLI `--wait` serialize normal GitHub dispatch runs across refs until remote completion. It uses Node22.23.3, locked dependencies and pinned CLI 24.10.0. EAS native-preview no longer has a push trigger, preventing a duplicate automatic publisher. Configure an owner-authorized repository `EXPO_TOKEN` secret before activation; the prepared job fails clearly if absent and never prints it. No token was created/configured or dispatcher executed by this preparation. It uploads the checked-out local project via CLI, so it does not rely on the currently missing Expo GitHub connection; `--ref` is intentionally omitted. Root archive exclusions still apply.
 
 Operationally, initiate native preview through this GitHub workflow rather than directly through EAS CLI/dashboard: direct EAS manual runs bypass the GitHub lock. GitHub concurrency normally retains one active and one pending run; newer queued runs can replace older pending runs. If the GitHub dispatcher times out, is canceled or loses connectivity, its remote EAS run may continue after the lock releases. Check and settle that remote run before another dispatch; this is not a distributed lock over all EAS operations. Global serialization is prepared source behavior and not yet proven by execution. [EAS dispatch/wait flags](https://docs.expo.dev/eas/cli/), [Expo CI tokens](https://docs.expo.dev/accounts/programmatic-access/), [GitHub concurrency](https://docs.github.com/en/actions/concepts/workflows-and-actions/concurrency).
 
-GitHub Android alternative is manual only. Read-only checks show the public repository's Actions enabled/all actions permitted. Push the reviewed root `.github/workflows/android-smoke.yml` so GitHub can discover it, supply the existing APK URL and dispatch on the chosen reviewed ref. Lead has configured `DROPS_NATIVE_QA_EMAIL`/`DROPS_NATIVE_QA_PASSWORD` secrets with one fresh test owner; preserve the fresh-state precondition and cleanup after the run. Emulator execution has not occurred. Never run a local emulator while the user is gaming. The hosted runner uploads only allowlisted post-login images and a safe fixed-field summary; raw Maestro reports/logs/failed-login screenshots are discarded. See [NATIVE-SMOKE.md](NATIVE-SMOKE.md). The optional EAS native-smoke workflow remains paid-plan-blocked and unrun.
+GitHub Android smoke permits manual input and same-repository PRs only from `codex/drops-v01`, with nonempty public `DROPS_PREVIEW_APK_URL`; manual input takes precedence. Fixture secrets remain emulator-step-only. Run 37264973906 passed on hosted API 35; safe evidence retains three named post-login images and a summary. The reusable fixture now authenticates only to Drops Test, verifies server getUser and disposable marker, resets eight exact-owner app tables before flow and in finally, verifies empty and preserves the Auth account. Failed cleanup fails the run; updated hosted reset lifecycle is still awaiting rerun. Never run a local emulator while the user is gaming. Raw Maestro reports/logs/failed-login screenshots are discarded. See [NATIVE-SMOKE.md](NATIVE-SMOKE.md). Optional EAS Maestro remains paid-plan-blocked and unrun.
 
 ## Manual production promotion
 
