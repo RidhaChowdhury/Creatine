@@ -1,0 +1,55 @@
+name: Drops manual production web promotion
+# This workflow never applies database migrations or submits native store builds.
+on:
+  workflow_dispatch: {}
+defaults:
+  tools:
+    node: '22.23.3'
+jobs:
+  validate:
+    environment: production
+    env:
+      EXPO_NO_DOTENV: '1'
+    steps:
+      - uses: eas/checkout
+      - run: npm ci
+      - run: npm run verify
+      # Local SQLite fixtures are isolated even in this production job.
+      - run: npm run build:web
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e:export
+  candidate:
+    needs: [validate]
+    type: deploy
+    environment: production
+    env:
+      EXPO_NO_DOTENV: '1'
+    params:
+      prod: false
+  verify_candidate:
+    needs: [candidate]
+    environment: production
+    env:
+      DROPS_ENV: production
+      DROPS_DEPLOY_URL: ${{ needs.candidate.outputs.deploy_deployment_url }}
+      DROPS_DEPLOY_ID: ${{ needs.candidate.outputs.deploy_identifier }}
+    steps:
+      - uses: eas/checkout
+      - run: node scripts/verify-deployment.mjs
+      - run: node scripts/release-manifest.mjs
+      - uses: eas/upload_artifact
+        with:
+          path: artifacts
+          name: production-candidate-evidence
+          type: other
+  approve:
+    needs: [verify_candidate]
+    type: require-approval
+  promote:
+    needs: [candidate, approve]
+    environment: production
+    env:
+      DROPS_DEPLOY_ID: ${{ needs.candidate.outputs.deploy_identifier }}
+    steps:
+      - uses: eas/checkout
+      - run: npx --yes eas-cli@24.10.0 deploy:alias --prod --id "$DROPS_DEPLOY_ID" --non-interactive
