@@ -1,5 +1,7 @@
-name: Drops manual Android smoke
+name: Drops isolated Android smoke
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       apk_url:
@@ -13,6 +15,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   smoke:
+    # Forks and other head branches never receive fixture secrets. Draft PRs may
+    # exercise the owned preview APK without merging a workflow into main.
+    if: ${{ (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.head_ref == 'codex/drops-v01' && github.event.pull_request.head.repo.full_name == github.repository)) && (inputs.apk_url != '' || vars.DROPS_PREVIEW_APK_URL != '') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -26,12 +31,12 @@ jobs:
       - name: Validate existing APK URL
         working-directory: expo-app
         env:
-          DROPS_APK_URL: ${{ inputs.apk_url }}
+          DROPS_APK_URL: ${{ inputs.apk_url || vars.DROPS_PREVIEW_APK_URL }}
         run: node scripts/native-smoke.mjs validate-url
       - name: Fetch APK and pinned Maestro CLI
         shell: bash
         env:
-          DROPS_APK_URL: ${{ inputs.apk_url }}
+          DROPS_APK_URL: ${{ inputs.apk_url || vars.DROPS_PREVIEW_APK_URL }}
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --output "$RUNNER_TEMP/drops.apk" "$DROPS_APK_URL"
