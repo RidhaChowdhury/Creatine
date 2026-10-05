@@ -4,7 +4,7 @@ on:
     branches: ['main']
     paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
   push:
-    branches: ['codex/drops-v01', 'main']
+    branches: ['main']
     paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
   workflow_dispatch: {}
 concurrency:

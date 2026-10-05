@@ -2,6 +2,7 @@ name: Drops isolated Android smoke
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths: ['expo-app/**', '!expo-app/docs/**', '.github/workflows/android-smoke.yml', '.easignore']
   workflow_dispatch:
     inputs:
       apk_url:

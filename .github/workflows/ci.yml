@@ -2,7 +2,10 @@ name: Expo app CI
 
 on:
   pull_request:
+    paths: ['expo-app/**', '!expo-app/docs/**', '.github/workflows/ci.yml', '.easignore']
   push:
+    branches: ['main']
+    paths: ['expo-app/**', '!expo-app/docs/**', '.github/workflows/ci.yml', '.easignore']
   workflow_dispatch:
 
 permissions:
