@@ -2,7 +2,11 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 const runId = randomUUID();
-const server = spawn(process.execPath, ['scripts/preview.mjs'], { stdio: 'inherit', env: { ...process.env, PORT: '4173', DROPS_EXPORT_DIR: 'dist-pitwall', DROPS_PREVIEW_RUN_ID: runId } });
+const serverEnv = { ...process.env, PORT: '4173', DROPS_EXPORT_DIR: 'dist-pitwall', DROPS_PREVIEW_RUN_ID: runId, DROPS_PREVIEW_HOST: '127.0.0.1' };
+// The test runner owns a loopback HTTP server, even from a LAN preview shell.
+delete serverEnv.DROPS_PREVIEW_TLS_CERT;
+delete serverEnv.DROPS_PREVIEW_TLS_KEY;
+const server = spawn(process.execPath, ['scripts/preview.mjs'], { stdio: 'inherit', env: serverEnv });
 try {
   let ready = false;
   for (let attempt = 0; attempt < 30; attempt++) {

@@ -60,6 +60,32 @@ The web app uses Skia CanvasKit and Expo SQLite's web support. A deployed web
 host must serve `Cross-Origin-Embedder-Policy: require-corp` and
 `Cross-Origin-Opener-Policy: same-origin` for SQLite's shared-memory setup.
 
+## Phone preview on the local network
+
+The static preview defaults to loopback. To use it from a phone on the same
+Wi-Fi, bind to the computer's Wi-Fi address and use HTTPS. Plain HTTP on a LAN
+address is not a secure context and cannot run the current SQLite storage.
+
+Provide a certificate valid for that IP address and trusted by the phone, with
+its private key stored outside the export directory. For example, in PowerShell:
+
+```powershell
+$env:DROPS_PREVIEW_HOST = '192.168.1.22' # Replace with your Wi-Fi address.
+$env:PORT = '8443'
+$env:DROPS_PREVIEW_TLS_CERT = '.expo/lan-preview/server.pem'
+$env:DROPS_PREVIEW_TLS_KEY = '.expo/lan-preview/server-key.pem'
+npm run preview
+```
+
+Keep certificates and keys in ignored `.expo/lan-preview/`, never in `public/`,
+the export, or Git. This command does not install a certificate into any trust
+store, open a firewall rule, or create a public tunnel. If Windows Firewall
+blocks the connection, allow only the preview port on the Wi-Fi interface from
+the local subnet. Do not disable the firewall. Remove any development trust and
+firewall rule when finished. If the Wi-Fi IP changes, renew the certificate and
+update the address. A phone has its own browser storage; desktop sample history
+does not automatically transfer.
+
 ## Quick check
 
 For a local browser pass, use `npm run dev:local` and check at 320×568,
