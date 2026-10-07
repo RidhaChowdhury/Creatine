@@ -12,7 +12,7 @@
     "web": "node scripts/start.mjs cloud --web",
     "web:local": "node scripts/start-local.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "postinstall": "setup-skia-web",
+    "postinstall": "setup-skia-web && node scripts/patch-expo-worker.mjs",
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
     "test:setup": "node --test scripts/__tests__/*.test.mjs",

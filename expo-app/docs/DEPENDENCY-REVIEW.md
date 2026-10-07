@@ -34,6 +34,26 @@ Focused source integration is recorded in commit `39fe3b1`; browser coverage and
 
 Later final-export verification used hydration-fixed bundle `c4268f7e8f83d4e85c9dadd3d39eca86.js` under Node 22.23.3. The positive wrapper passed all 18 functional browser checks in 1.7 minutes, then its explicit `--visual` mode passed six existing visual comparisons in 23.2 seconds without updating baselines. Three added cases exercise 1024×1366 portrait, 1366×1024 landscape and 507×980 narrow windows, retaining incomplete form fields, History filters and selected chart points across all three sizes. Two test selector mismatches were corrected without application changes. Each run used one headless worker and cleaned up its own 4173 preview; user preview 8082 retained PID 14160 and HTTP 200. These checks provide browser evidence, not installed iPad evidence.
 
+## Phone preview worker compatibility — October 6, 2026
+
+The hosted phone smoke test reproduced a startup failure in Playwright WebKit:
+Expo 54.0.37 immediately revoked the blob URL used to bootstrap an isolated
+SQLite worker. A minimal native worker probe succeeded when that URL remained
+valid and failed when it was revoked immediately. `scripts/patch-expo-worker.mjs`
+now retains only that bootstrap URL until the worker's first message, error, or
+termination, and cleans up on constructor failure. Postinstall applies the
+idempotent, exact-version/source-checked patch; unexpected upstream code stops
+with a review instruction. It preserves Expo's isolation headers, fetch/import
+base URL handling, and direct-worker path. Review and retire this workaround
+when upgrading Expo; do not silently expand its supported version range.
+
+Playwright's WebKit port also lacks SharedArrayBuffer in this environment,
+despite a secure, isolated document. The phone QA report records this capability
+as unsupported separately while still requiring real SQLite write/reload,
+rendering, edit/Undo, and navigation checks. It never injects a replacement
+SharedArrayBuffer or mock storage. [Upstream Playwright issue](https://github.com/microsoft/playwright/issues/28513).
+Physical Safari verification remains a separate gate.
+
 ## Configuration that is coherent, with remaining evidence gates
 
 Root `.easignore` is the authoritative archive exclusion; the app-local duplicate has been removed. It excludes generated iOS/Android projects so cloud builds use CNG. `.fingerprintignore` excludes the same native directories; installed fingerprint path matching converts trailing `/**` into a directory match, so this also excludes bare-directory fingerprint sources. Original native projects remain in Git without entering cloud archives. Verify the actual cloud binary's recorded runtime hash against the workflow fingerprint and its subsequent OTA update before claiming reuse works. [Expo fingerprint reference](https://docs.expo.dev/versions/latest/sdk/fingerprint/).

@@ -4,7 +4,7 @@ const { withTamagui } = require('@tamagui/metro-plugin');
 const config = getDefaultConfig(__dirname);
 // Keep exports and QA captures out of Metro's file map. On Windows, reading
 // thousands of disk cache entries concurrently can exhaust file descriptors.
-config.resolver.blockList = [/[/\\]dist-pitwall[/\\].*/, /[/\\]dist-native[/\\].*/, /[/\\]dist-cloud[/\\].*/, /[/\\]artifacts[/\\].*/, /[/\\]qa[/\\].*/];
+config.resolver.blockList = [/[/\\]dist-pitwall[/\\].*/, /[/\\]dist-native[/\\].*/, /[/\\]dist-cloud[/\\].*/, /[/\\]dist-phone[/\\].*/, /[/\\]artifacts[/\\].*/, /[/\\]qa[/\\].*/];
 if (process.platform === 'win32') config.cacheStores = [];
 
 // Expo SQLite's browser worker loads WebAssembly and uses SharedArrayBuffer.
