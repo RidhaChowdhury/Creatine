@@ -31,6 +31,22 @@ export function guardQaProfileCleanup(target, profileRoot, freshlyCreated) {
   if (resolved !== freshlyCreated || !resolved.startsWith(root + path.sep) || !/^webkit-[a-zA-Z0-9]{6}$/.test(path.basename(resolved))) throw new Error('Refusing unexpected QA profile cleanup path');
   return resolved;
 }
+export function trackPendingPhoneRequests(page) {
+  const pending = new Set();
+  page.on('request', request => pending.add(request));
+  page.on('requestfinished', request => pending.delete(request));
+  page.on('requestfailed', request => pending.delete(request));
+  return () => pending.size;
+}
+
+async function waitForPhoneAssets(page, pendingCount) {
+  // A route can expose navigation before its font fetches have completed.
+  // Wait for the actual requests and font loading, rather than cancelling them
+  // with a reload or treating their resulting errors as acceptable.
+  await expect.poll(pendingCount, { timeout: 30000, message: 'Route assets must finish before navigation/reload' }).toBe(0);
+  await page.evaluate(() => document.fonts.ready);
+  await expect.poll(async () => ({ requests: pendingCount(), fonts: await page.evaluate(() => document.fonts.status) }), { timeout: 30000 }).toEqual({ requests: 0, fonts: 'loaded' });
+}
 
 async function runEngine(engine, name, base, directory) {
   const record = { browser: name, status: 'failed', phase: 'launch', passed: [], prohibitedRequests: 0, pageErrors: 0, assetFailures: 0, screenshots: [], limitations: ['Emulated mobile browser; no physical iPhone acceptance'] };
@@ -67,6 +83,7 @@ async function runEngine(engine, name, base, directory) {
     await context.routeWebSocket(/.*/, async socket => { record.prohibitedRequests++; await socket.close({ code: 1008, reason: 'Static preview does not use sockets' }); });
     page = await context.newPage();
     page.setDefaultTimeout(30000);
+    const pendingCount = trackPendingPhoneRequests(page);
     page.on('pageerror', () => record.pageErrors++);
     page.on('requestfailed', request => { if (request.resourceType() !== 'other') record.assetFailures++; });
     let wasmLoaded = false;
@@ -164,9 +181,16 @@ async function runEngine(engine, name, base, directory) {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
     record.passed.push('draft survives rotation; cancellation preserves History');
     record.phase = 'navigation';
-    for (const label of ['Supps', 'Insights', 'History', 'Home']) { await tab(label); await expect(nav()).toBeVisible(); }
+    for (const [label, pathname] of [['Supps', '/supps'], ['Insights', '/metrics'], ['History', '/history'], ['Home', '/']]) {
+      await tab(label);
+      await expect.poll(() => new URL(page.url()).pathname).toBe(pathname);
+      if (label === 'Home') await expect(page.getByLabel('Water today:', { exact: false })).toHaveAttribute('aria-label', /8 oz/);
+      else await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
+      await waitForPhoneAssets(page, pendingCount);
+    }
     await page.reload();
     await expect(page.getByLabel('Water today:', { exact: false })).toHaveAttribute('aria-label', /8 oz/);
+    await waitForPhoneAssets(page, pendingCount);
     await screenshot('final-home');
     await Promise.all(audits);
     assert.equal(record.prohibitedRequests, 0); assert.equal(record.pageErrors, 0); assert.equal(record.assetFailures, 0);
