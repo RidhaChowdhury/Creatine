@@ -54,6 +54,23 @@ rendering, edit/Undo, and navigation checks. It never injects a replacement
 SharedArrayBuffer or mock storage. [Upstream Playwright issue](https://github.com/microsoft/playwright/issues/28513).
 Physical Safari verification remains a separate gate.
 
+WebKit QA uses a fresh disposable persistent profile because Playwright's
+ephemeral WebKit contexts do not support OPFS. On this Windows host, even a
+persistent profile reports `NotSupportedError` when creating a sync access
+handle; that is a test-backend limitation, not evidence that the deployed app
+works in Safari. The hosted smoke therefore runs on `macos-15` and exercises real
+SQLite writes, reloads and corrections. Its profile cleanup is constrained to
+the exact freshly created directory under the owned artifact root.
+[Playwright OPFS limitation](https://playwright.dev/docs/api/class-browsercontext),
+[WebKit OPFS implementation](https://webkit.org/blog/12257/the-file-system-access-api-with-origin-private-file-system/).
+
+The first macOS run completed the storage and UI flows, but its final immediate
+reload cancelled two in-flight fonts. The repaired harness waits for the actual
+route, screen content, outstanding requests and loaded document fonts before
+navigation/reload; zero-runtime-error and zero-asset-failure assertions remain.
+See the implementation report for the final rerun result. These tooling changes
+do not close physical iPhone/iPad or dependency-audit gates.
+
 ## Configuration that is coherent, with remaining evidence gates
 
 Root `.easignore` is the authoritative archive exclusion; the app-local duplicate has been removed. It excludes generated iOS/Android projects so cloud builds use CNG. `.fingerprintignore` excludes the same native directories; installed fingerprint path matching converts trailing `/**` into a directory match, so this also excludes bare-directory fingerprint sources. Original native projects remain in Git without entering cloud archives. Verify the actual cloud binary's recorded runtime hash against the workflow fingerprint and its subsequent OTA update before claiming reuse works. [Expo fingerprint reference](https://docs.expo.dev/versions/latest/sdk/fingerprint/).

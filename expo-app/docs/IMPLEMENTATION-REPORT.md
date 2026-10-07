@@ -6,6 +6,63 @@ Status meanings: **Pass** means the stated acceptance was exercised in the named
 
 ## Acceptance matrix
 
+### Phone browser preview — 2026-10-06
+
+The current phone handoff is **https://drops-ridha--phone.expo.app/**, targeting
+immutable deployment `v6slrkvs0r` from clean app export
+`811628e796b66a709368939b7fe6488a1ed5a951`. This includes the revised navigation
+dock and centered History rows, name-only onboarding, optional labeled 30-day
+sample history, and a WebKit worker-bootstrap repair. It runs with browser-local
+SQLite and no configured Supabase endpoint. Records stay on that browser origin;
+the phone and desktop preview do not sync. No login, LAN certificate or local
+network setup is needed. The stable alias retains the origin for later updates.
+
+The sample-history guard rejects cloud-configured/native execution and requires
+either loopback or the explicit phone-export flag on an allowlisted HTTPS preview
+host. Nothing seeds automatically. Hosted QA used only synthetic records in fresh
+browser profiles and rejected all external API/socket traffic.
+
+Executed source gates passed TypeScript, 124 Jest tests across 20 suites, 44 Node
+script checks and both migration/repository verifiers. After browser-harness
+cleanup and request-readiness coverage was added, the full script suite passed
+46 checks. `build:web:phone` completed from a clean app commit. All 18 immutable
+HTTP/asset probes passed; the 12 referenced script/font/WASM assets matched local
+export hashes. All 18 stable-alias responses then matched the immutable candidate,
+including isolation and nosniff headers on all six HTML routes. Compiled assets
+contained no configured cloud endpoint or secret key. Evidence is retained in
+`artifacts/phone-preview-repair-{verify,export,http}.log/json`,
+`artifacts/phone-preview-final-script-tests.log`, and
+`artifacts/phone-preview-alias-verification.json`.
+
+The final macOS browser run
+[37566690956](https://github.com/RidhaChowdhury/Creatine/actions/runs/37566690956)
+passed on QA source `cd86b0f`. Chromium and WebKit both exercised name-only
+onboarding, 210 entries over 30 sample days, an 8 oz save, actual CanvasKit
+rendering, History reload persistence, edit and exact Undo, an unfinished draft
+across rotation, cancellation retaining History, navigation and final reload.
+The zero-runtime-error, zero-asset-failure and zero-prohibited-traffic assertions
+remained enabled. The artifact includes per-browser summaries and screenshots.
+Playwright WebKit's missing SharedArrayBuffer remains explicitly recorded as an
+unsupported tooling capability; no replacement API or mock database was used.
+These are emulated phone-browser checks on macOS, not physical-device acceptance.
+
+The preceding candidate `tcxv4wdwyj` failed WebKit startup because Expo revoked its
+isolated worker bootstrap URL before WebKit loaded it. The exact-version
+postinstall patch retains the URL until first message/error/termination, with
+cleanup on constructor failure and six lifecycle tests. Windows WebKit then hit
+its unsupported OPFS sync-access backend; QA moved to macOS with a fresh ordinary
+persistent profile. Initial macOS run `37566327864` passed all storage, rendering,
+edit/Undo and rotation flows but failed its final zero-error assertion because
+the harness reloaded while two fonts were loading. The corrected harness awaits
+route/screen/asset readiness; it does not ignore errors or replace browser APIs.
+
+This browser delivery does not close physical iPhone/iPad, native signing,
+TestFlight, notification, dependency-audit, numerical-model or production gates.
+The new phone alias has not undergone a rollback exercise. Earlier native/cloud
+artifacts below are historical evidence and do not represent this browser-local
+deployment. Desktop preview `http://127.0.0.1:8082/` remained available; retired
+LAN HTTPS/certificate-bootstrap listeners were stopped after hosted verification.
+
 ### Local preview follow-up — 2026-10-05
 
 The user's new navigation direction supersedes the original transparent bar: a continuous dark full-width dock now has its own safe-area space. Hover/press feedback stays within compact icons; whole-tab backgrounds remain transparent and keyboard focus remains visible. History follows the approved flat timeline with left-aligned name/time/note, vertically centered icons and exact right-aligned quantities. Phone/tablet screenshots cover long notes and `236.588 mL` without clipping.

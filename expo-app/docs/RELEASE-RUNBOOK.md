@@ -12,6 +12,48 @@ The existing cached EAS entry is `C:/Users/ridha/AppData/Local/npm-cache/_npx/c5
 
 ## Current checkpoint and prerequisites
 
+### Phone browser handoff — October 6, 2026
+
+The account-free phone build is available at **https://drops-ridha--phone.expo.app/**.
+The `phone` alias currently targets immutable deployment `v6slrkvs0r`, exported
+from clean app commit `811628e796b66a709368939b7fe6488a1ed5a951`. Open it in an
+ordinary Safari or Chrome tab, enter a name, and start logging. Settings offers
+an optional, explicitly labeled 30-day sample-history fill. Records stay in this
+browser's local SQLite storage; this build has no configured Supabase endpoint
+and does not sync with the desktop preview. Use the stable alias to retain the
+same browser storage origin across future updates. Clearing website data removes
+these local records. No LAN certificate, shared Wi-Fi, account, or new key is
+required. This is a browser build; native signing and installed-device gates
+below remain separate.
+
+To prepare another account-free candidate:
+
+```text
+npm run verify
+npm run build:web:phone
+eas deploy --export-dir dist-phone --environment preview --non-interactive --json
+node scripts/verify-deployment.mjs https://drops-ridha--<deployment-id>.expo.app/
+node scripts/phone-preview-qa.mjs https://drops-ridha--<deployment-id>.expo.app/
+eas deploy:alias --alias phone --id <verified-deployment-id> --json
+```
+
+Run the browser smoke on macOS for both Chromium and persistent-profile WebKit;
+the checked-in `Hosted phone preview smoke` workflow provides this runner. Its
+candidate URL is explicit: update the push default or manually supply the exact
+immutable URL before testing a different deployment. Windows WebKit lacks the
+OPFS sync-access backend needed by SQLite. The harness reports WebKit's missing
+SharedArrayBuffer separately without replacing storage or weakening functional
+checks. After alias assignment, compare every route/asset hash and HTML isolation
+header with the verified immutable candidate. Keep export metadata, browser
+summary/screenshots, alias checks and release manifest as distinct evidence.
+
+The alias command intentionally omits `--prod`. EAS CLI 24.10.0 may print a
+production success message for a custom alias; that wording does not mean the
+production alias changed. A later phone rollback must select a previously
+verified compatible phone deployment and repeat the alias/header checks. No
+rollback of this new phone alias has been exercised; the preceding candidate
+`tcxv4wdwyj` has a known WebKit worker-startup defect and is not a passing fallback.
+
 | Area | Latest reported state | Next gate |
 | --- | --- | --- |
 | Verification | Final PR CI 37266525686 passed TypeScript, 118 Jest tests, 35 setup checks, both database verifiers, web/native JS exports, 18 functional and 6 visual checks | Includes the native checkpoint-parser check. Physical and model gates remain. |
