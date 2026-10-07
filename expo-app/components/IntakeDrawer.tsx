@@ -1,16 +1,7 @@
 import React from 'react';
-import { View, Keyboard, Platform, Dimensions, ScrollView, TextInput } from 'react-native';
+import { Keyboard, Platform } from 'react-native';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
-import {
-   Actionsheet,
-   ActionsheetBackdrop,
-   ActionsheetContent,
-   ActionsheetDragIndicator,
-   ActionsheetDragIndicatorWrapper,
-   ActionsheetScrollView
-} from '@/components/ui/actionsheet';
+import { Button, Input, ScrollView, Sheet, Text, XStack, YStack } from 'tamagui';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { selectDrinkUnit } from '@/features/settings/settingsSlice';
 import {
@@ -19,8 +10,7 @@ import {
    updateIntakeLog,
    deleteIntakeLog
 } from '@/features/intake/intakeSlice';
-import { CalendarClock, Minus, Plus, Trash, Check, Pencil } from 'lucide-react-native';
-import { Checkbox, CheckboxIndicator, CheckboxLabel, CheckboxIcon } from '@/components/ui/checkbox';
+import { CalendarClock, Minus, Plus, Trash, Pencil } from 'lucide-react-native';
 import { selectCreatineLogs } from '@/features/intake/intakeSlice';
 
 type Props = {
@@ -89,6 +79,8 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
    });
    const [quickEditValue, setQuickEditValue] = React.useState<number>(0);
    const [quickEditText, setQuickEditText] = React.useState<string>('0');
+   const [saving, setSaving] = React.useState(false);
+   const [actionError, setActionError] = React.useState('');
    const cancelQuick = () => {
       setQuickEdit({ active: false, index: null });
       setIsAmountFocused(false);
@@ -102,6 +94,7 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
    // When parent closes the sheet, wait until the sheet hides (animation) before resetting visible values
    const resetTimer = React.useRef<number | null>(null);
    React.useEffect(() => {
+      if (isOpen) setActionError('');
       // If sheet just closed, schedule a delayed reset so user doesn't see values snap during animation
       if (!isOpen) {
          // clear any previous timer
@@ -261,383 +254,173 @@ const IntakeDrawer: React.FC<Props> = ({ isOpen, onClose, initial, quickAmounts 
    };
 
    const handleConfirm = async () => {
+      if (saving) return;
+      setSaving(true);
+      setActionError('');
       const when = toSqlDateTime(consumedAt);
-      if (isEditing && initial?.id) {
-         // Update existing entry (amount, maybe unit, and consumed_at)
-         await dispatch(
-            updateIntakeLog({
-               id: initial.id,
-               amount: waterAmount,
-               unit: initial.unit,
-               consumed_at: when
-            })
-         );
-         // If this edit belongs to a paired water+creatine entry, also persist creatine side
-         if (initial.consumable === 'water+creatine') {
-            const pair = creatineLogs.find((l) => l.consumed_at === initial.consumed_at);
+      try {
+         if (isEditing && initial?.id) {
+            await dispatch(updateIntakeLog({ id: initial.id, amount: waterAmount, unit: initial.unit, consumed_at: when })).unwrap();
+            if (initial.consumable === 'water+creatine') {
+               const pair = creatineLogs.find((l) => l.consumed_at === initial.consumed_at);
+               if (includeCreatine) {
+                  const grams = Math.max(0, Math.round(creatineAmount * 100) / 100) || 5;
+                  if (pair) await dispatch(updateIntakeLog({ id: pair.id, amount: grams, unit: 'g', consumed_at: when })).unwrap();
+                  else await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when })).unwrap();
+               } else if (pair) await dispatch(deleteIntakeLog(pair.id)).unwrap();
+            }
+         } else {
+            if (waterAmount > 0) await dispatch(addDrinkLog({ amount: waterAmount, consumable: 'water' as any, unit: drinkUnit, consumed_at: when })).unwrap();
             if (includeCreatine) {
                const grams = Math.max(0, Math.round(creatineAmount * 100) / 100) || 5;
-               if (pair) {
-                  await dispatch(
-                     updateIntakeLog({ id: pair.id, amount: grams, unit: 'g', consumed_at: when })
-                  );
-               } else {
-                  await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when }));
-               }
-            } else if (pair) {
-               // User unchecked creatine while editing a paired entry -> remove the creatine log
-               await dispatch(deleteIntakeLog(pair.id));
+               await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when })).unwrap();
             }
          }
-      } else {
-         // Add water only if > 0
-         if (waterAmount > 0) {
-            await dispatch(
-               addDrinkLog({
-                  amount: waterAmount,
-                  consumable: 'water' as any,
-                  unit: drinkUnit,
-                  consumed_at: when
-               })
-            );
-         }
-         // Optional creatine pair (5g)
-         if (includeCreatine) {
-            const grams = Math.max(0, Math.round(creatineAmount * 100) / 100) || 5;
-            await dispatch(addCreatineLog({ amount: grams, unit: 'g', consumed_at: when }));
-         }
+         onClose();
+      } catch (error) {
+         setActionError((error as Error).message || 'Unable to save this intake. Please try again.');
+      } finally {
+         setSaving(false);
       }
-      onClose();
    };
 
    const handleDelete = async () => {
-      if (!initial?.id) return;
+      if (!initial?.id || saving) return;
+      setSaving(true);
+      setActionError('');
 
-      // Always delete the currently edited log
-      const deletions: Array<Promise<any>> = [dispatch(deleteIntakeLog(initial.id)) as any];
-
-      // If it's a combined entry, also delete the paired creatine log(s) at the same timestamp
-      if (initial.consumable === 'water+creatine' && initial.consumed_at) {
-         const pairs = creatineLogs.filter((l) => l.consumed_at === initial.consumed_at);
-         for (const p of pairs) {
-            deletions.push(dispatch(deleteIntakeLog(p.id)) as any);
+      try {
+         const deletions: Array<Promise<unknown>> = [dispatch(deleteIntakeLog(initial.id)).unwrap()];
+         if (initial.consumable === 'water+creatine' && initial.consumed_at) {
+            const pairs = creatineLogs.filter((l) => l.consumed_at === initial.consumed_at);
+            for (const pair of pairs) deletions.push(dispatch(deleteIntakeLog(pair.id)).unwrap());
          }
+         const results = await Promise.allSettled(deletions);
+         const failed = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+         if (failed) throw failed.reason;
+         onClose();
+      } catch (error) {
+         setActionError((error as Error).message || 'Unable to delete this intake. Please try again.');
+      } finally {
+         setSaving(false);
       }
-
-      await Promise.allSettled(deletions);
-      onClose();
    };
 
    // Determine display unit and quick amounts (water-centric)
    const displayUnit = isEditing ? (initial?.unit ?? drinkUnit) : drinkUnit;
-   const waterDefaults = drinkUnit === 'ml' ? [250, 330, 500, 750] : defaultQuick;
    const quicks = quicksLocal;
    const isCreatineOnly = isEditing && initial?.consumable === 'creatine';
-   const amountLabel = isCreatineOnly || creatineEditing ? 'GRAMS' : 'OUNCES';
+   const amountLabel = isCreatineOnly || creatineEditing ? 'GRAMS' : displayUnit.toUpperCase();
+   const accent = '#398eff';
+   const fg = '#e9e9e9';
+   const muted = '#999';
+   const line = '#353535';
+   const activeText = quickEdit.active ? quickEditText : creatineEditing ? creatineAmountText : waterAmountText;
 
-   return (
-      <Actionsheet
-         isOpen={isOpen}
-         onClose={handleClose}>
-         <ActionsheetBackdrop />
-         <ActionsheetContent style={{ paddingBottom: keyboardHeight + 30, width: '100%' }}>
-            <View className='w-full'>
-               <ActionsheetDragIndicatorWrapper>
-                  <ActionsheetDragIndicator />
-               </ActionsheetDragIndicatorWrapper>
-            </View>
-            <ActionsheetScrollView className='w-full'>
-               {/* Water Input with +/- at edges */}
-               <View className='flex-row items-center justify-between'>
-                  <Button
-                     variant='outline'
-                     size='lg'
-                     onPress={() => adjustAmount(-1)}
-                     className='w-16 h-16 rounded-full'>
-                     <Minus color={'white'} />
+   return <Sheet open={isOpen} onOpenChange={(open: boolean) => { if (!open) handleClose(); }} modal snapPoints={[88]} snapPointsMode="percent" dismissOnOverlayPress moveOnKeyboardChange zIndex={100000}>
+      <Sheet.Overlay backgroundColor="#000000bb" />
+      <Sheet.Frame backgroundColor="#0c0c0c" borderTopWidth={1} borderColor={line} paddingBottom={Math.max(18, keyboardHeight + 16)} maxHeight="92%">
+         <Sheet.Handle backgroundColor="#666" />
+         <Sheet.ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 18 }}>
+            <YStack gap={5}>
+               <Text color={fg} fontFamily="$heading" fontSize={28} fontWeight="600">{isEditing ? 'Edit intake' : 'Log intake'}</Text>
+               <Text color={muted} fontFamily="$mono" fontSize={10}>{isCreatineOnly ? 'CREATINE' : 'WATER'} · {consumedAt.toLocaleDateString()}</Text>
+            </YStack>
+
+            <XStack alignItems="center" justifyContent="space-between" gap={10}>
+               <Button unstyled onPress={() => adjustAmount(-1)} role="button" aria-label="Decrease amount" width={52} height={52} borderWidth={1} borderColor={line} borderRadius={2} alignItems="center" justifyContent="center"><Minus size={19} color={fg} /></Button>
+               <YStack flex={1} alignItems="center" gap={2}>
+                  <Input value={activeText} onChangeText={(value) => {
+                     if (quickEdit.active) {
+                        setQuickEditText(value);
+                        const parsed = Number(value.replace(',', '.'));
+                        if (!Number.isNaN(parsed)) setQuickEditValue(parsed);
+                     } else if (creatineEditing) {
+                        setCreatineAmountText(value);
+                        const parsed = Number(value.replace(',', '.'));
+                        if (!Number.isNaN(parsed)) setCreatineAmount(parsed);
+                     } else {
+                        setWaterAmountText(value);
+                        const parsed = Number(value.replace(',', '.'));
+                        if (!Number.isNaN(parsed)) setWaterAmount(parsed);
+                     }
+                  }} onFocus={() => { setIsAmountFocused(true); setPickerState({ mode: null }); }} onBlur={() => setIsAmountFocused(false)} keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'} returnKeyType="done" aria-label={`Amount in ${amountLabel}`} textAlign="center" borderWidth={0} backgroundColor="transparent" color={fg} fontFamily="$heading" fontSize={62} fontWeight="600" height={75} padding={0} />
+                  <Text color={muted} fontFamily="$mono" fontSize={10} letterSpacing={1}>{amountLabel}</Text>
+               </YStack>
+               <Button unstyled onPress={() => adjustAmount(1)} role="button" aria-label="Increase amount" width={52} height={52} borderWidth={1} borderColor={line} borderRadius={2} alignItems="center" justifyContent="center"><Plus size={19} color={fg} /></Button>
+            </XStack>
+
+            {!quickEdit.active && !creatineEditing && !isCreatineOnly && <XStack alignItems="center" gap={8}>
+               <ScrollView horizontal showsHorizontalScrollIndicator={false} flex={1}>
+                  <XStack gap={8}>
+                     {quicks.map((quick, index) => <Button key={`${quick}-${index}`} onPress={() => handleQuick(quick)} onLongPress={() => startEditQuick(index)} minHeight={44} minWidth={62} borderRadius={2} borderWidth={1} borderColor={line} backgroundColor="transparent" role="button" aria-label={`${quick} ${displayUnit}; hold to edit`}>
+                        <Text color={fg} fontFamily="$mono" fontSize={12}>{quick} {displayUnit}</Text>
+                     </Button>)}
+                  </XStack>
+               </ScrollView>
+               <Button onPress={startAddQuick} minHeight={44} minWidth={44} borderRadius={2} borderWidth={1} borderColor={line} backgroundColor="transparent" role="button" aria-label="Add quick amount"><Plus size={18} color={accent} /></Button>
+            </XStack>}
+
+            {!isAmountFocused && !quickEdit.active && <YStack gap={12}>
+               <XStack alignItems="center" gap={8}>
+                  <CalendarClock color={muted} size={16} />
+                  <Button unstyled onPress={() => setPickerState({ mode: 'date' })} role="button" aria-label="Choose date" minHeight={44} paddingHorizontal={10} borderWidth={1} borderColor={line} borderRadius={2} justifyContent="center">
+                     <Text color={fg} fontFamily="$mono" fontSize={10}>{consumedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
                   </Button>
-                  <View className='flex flex-col items-center'>
-                     <TextInput
-                        value={
-                           quickEdit.active
-                              ? quickEditText
-                              : creatineEditing
-                                ? creatineAmountText
-                                : waterAmountText
-                        }
-                        onChangeText={(t) => {
-                           if (quickEdit.active) {
-                              setQuickEditText(t);
-                              const parsed = Number(t.replace(',', '.'));
-                              if (!Number.isNaN(parsed)) setQuickEditValue(parsed);
-                           } else if (creatineEditing) {
-                              setCreatineAmountText(t);
-                              const parsed = Number(t.replace(',', '.'));
-                              if (!Number.isNaN(parsed)) setCreatineAmount(parsed);
-                           } else {
-                              setWaterAmountText(t);
-                              const parsed = Number(t.replace(',', '.'));
-                              if (!Number.isNaN(parsed)) setWaterAmount(parsed);
-                           }
-                        }}
-                        onFocus={() => {
-                           setIsAmountFocused(true);
-                           // hide pickers and related controls while editing
-                           setPickerState({ mode: null });
-                        }}
-                        onBlur={() => setIsAmountFocused(false)}
-                        keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
-                        returnKeyType='done'
-                        className='text-[5rem] font-extrabold text-center'
-                        style={{ includeFontPadding: false, color: '#ffffff' }}
-                     />
-                     <Text className='text-typography-500'>{amountLabel}</Text>
-                  </View>
-                  <Button
-                     variant='outline'
-                     size='lg'
-                     onPress={() => adjustAmount(1)}
-                     className='w-16 h-16 rounded-full'>
-                     <Plus color={'white'} />
+                  <Button unstyled onPress={() => setPickerState({ mode: 'time' })} role="button" aria-label="Choose time" minHeight={44} paddingHorizontal={10} borderWidth={1} borderColor={line} borderRadius={2} justifyContent="center">
+                     <Text color={fg} fontFamily="$mono" fontSize={10}>{consumedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                   </Button>
-               </View>
+               </XStack>
+               {!isCreatineOnly && <XStack alignItems="center" justifyContent="space-between" minHeight={44} borderTopWidth={1} borderColor="#262626" paddingTop={9}>
+                  <Button unstyled onPress={() => setIncludeCreatine((value) => !value)} role="checkbox" aria-checked={includeCreatine} minHeight={44} flex={1} justifyContent="flex-start">
+                     <XStack alignItems="center" gap={10}>
+                        <YStack width={19} height={19} borderWidth={1} borderColor={includeCreatine ? accent : '#666'} backgroundColor={includeCreatine ? accent : 'transparent'} borderRadius={2} alignItems="center" justifyContent="center">{includeCreatine ? <Text color="#0c0c0c" fontSize={13} fontWeight="800">✓</Text> : null}</YStack>
+                        <Text color={fg} fontFamily="$body" fontSize={13}>{creatineAmount} g creatine</Text>
+                     </XStack>
+                  </Button>
+                  <Button unstyled onPress={() => {
+                     setPrevIncludeCreatine(includeCreatine); setIncludeCreatine(true); setCreatinePrevAmount(creatineAmount);
+                     setCreatineEditing(true); setIsAmountFocused(true); setPickerState({ mode: null });
+                  }} role="button" aria-label="Edit creatine amount" width={44} height={44} alignItems="center" justifyContent="center"><Pencil size={15} color={muted} /></Button>
+               </XStack>}
+            </YStack>}
 
-               <View className='mt-3 flex flex-col gap-2'>
-                  {/* Quick adds row with always-visible plus button (hidden in quick-edit mode) */}
-                  {!quickEdit.active && !creatineEditing && !isCreatineOnly && (
-                     <View className='flex-row items-center'>
-                        <ScrollView
-                           horizontal
-                           showsHorizontalScrollIndicator={false}
-                           className='flex-1'>
-                           {quicks.map((q, idx) => (
-                              <View
-                                 key={`${q}-${idx}`}
-                                 style={{ marginRight: 8 }}>
-                                 <Button
-                                    size='lg'
-                                    variant='outline'
-                                    onPress={() => handleQuick(q)}
-                                    onLongPress={() => startEditQuick(idx)}
-                                    className='px-4'>
-                                    <ButtonText>{q} oz</ButtonText>
-                                 </Button>
-                              </View>
-                           ))}
-                        </ScrollView>
-                        <Button
-                           size='lg'
-                           variant='outline'
-                           onPress={startAddQuick}
-                           className='px-4'>
-                           <ButtonText>+</ButtonText>
-                        </Button>
-                     </View>
-                  )}
+            {pickerState.mode && <YStack alignItems="center" gap={10}>
+               <DateTimePicker value={consumedAt} mode={pickerState.mode} display={Platform.OS === 'ios' ? pickerState.mode === 'time' ? 'spinner' : parseInt(String(Platform.Version), 10) >= 14 ? 'inline' : 'spinner' : pickerState.mode === 'time' ? 'clock' : 'calendar'} onChange={(_event, date) => { if (date) setConsumedAt(date); }} />
+               <Button onPress={() => setPickerState({ mode: null })} minHeight={44} alignSelf="stretch" borderRadius={2} borderWidth={1} borderColor={line} backgroundColor="transparent"><Text color={fg} fontFamily="$body" fontSize={14}>Set date and time</Text></Button>
+            </YStack>}
 
-                  {/* Date & Time selectors */}
-                  {!isAmountFocused && !quickEdit.active && (
-                     <View className='flex-row items-center justify-between'>
-                        <View className='flex-row gap-1 items-center'>
-                           <CalendarClock
-                              color={'gray'}
-                              size={20}
-                           />
-                           <Button
-                              variant='outline'
-                              size='sm'
-                              onPress={() => setPickerState({ mode: 'date' })}>
-                              <ButtonText className='text-xs'>
-                                 {consumedAt.toLocaleDateString(undefined, {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                 })}
-                              </ButtonText>
-                           </Button>
-                           <Button
-                              variant='outline'
-                              size='sm'
-                              onPress={() => setPickerState({ mode: 'time' })}>
-                              <ButtonText className='text-xs'>
-                                 {consumedAt.toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                 })}
-                              </ButtonText>
-                           </Button>
-                        </View>
-                        {!isCreatineOnly && (
-                           <View className='flex-row gap-0 items-center'>
-                              <Checkbox
-                                 size='md'
-                                 value='creatine'
-                                 isChecked={includeCreatine}
-                                 onChange={(checked) => setIncludeCreatine(Boolean(checked))}>
-                                 <CheckboxIndicator>
-                                    <CheckboxIcon as={Check} />
-                                 </CheckboxIndicator>
-                                 <CheckboxLabel className='text-sm'>{`${creatineAmount}g Creatine`}</CheckboxLabel>
-                              </Checkbox>
-                              <Button
-                                 variant='link'
-                                 size='sm'
-                                 className='py-4 px-3'
-                                 onPress={() => {
-                                    // Start creatine edit mode; ensure creatine is included
-                                    setPrevIncludeCreatine(includeCreatine);
-                                    setIncludeCreatine(true);
-                                    setCreatinePrevAmount(creatineAmount);
-                                    setCreatineEditing(true);
-                                    setIsAmountFocused(true);
-                                    setPickerState({ mode: null });
-                                 }}>
-                                 <Pencil
-                                    color={'gray'}
-                                    size={16}
-                                 />
-                              </Button>
-                           </View>
-                        )}
-                     </View>
-                  )}
+            {quickEdit.active && <YStack gap={8}>
+               <XStack gap={8}>
+                  <Button onPress={saveQuick} flex={1} minHeight={48} borderRadius={2} backgroundColor={fg}><Text color="#0c0c0c" fontFamily="$body" fontWeight="700">Save quick amount</Text></Button>
+                  {quickEdit.index !== null && <Button onPress={deleteQuick} minWidth={48} minHeight={48} borderRadius={2} backgroundColor="#552626" aria-label="Delete quick amount"><Trash size={17} color={fg} /></Button>}
+               </XStack>
+               <Button onPress={cancelQuick} minHeight={44} borderRadius={2} borderWidth={1} borderColor={line} backgroundColor="transparent"><Text color={muted}>Cancel</Text></Button>
+            </YStack>}
 
-                  {pickerState.mode && (
-                     <View className='items-center'>
-                        <DateTimePicker
-                           value={consumedAt}
-                           mode={pickerState.mode}
-                           display={
-                              Platform.OS === 'ios'
-                                 ? pickerState.mode === 'time'
-                                    ? 'spinner'
-                                    : parseInt(String(Platform.Version), 10) >= 14
-                                      ? 'inline'
-                                      : 'spinner'
-                                 : pickerState.mode === 'time'
-                                   ? 'clock'
-                                   : 'calendar'
-                           }
-                           onChange={(e, d) => {
-                              if (d) setConsumedAt(d);
-                           }}
-                        />
-                        <View className='flex-row gap-2'>
-                           <Button
-                              variant='outline'
-                              className='flex-1'
-                              onPress={() => setPickerState({ mode: null })}>
-                              <ButtonText>Set</ButtonText>
-                           </Button>
-                        </View>
-                     </View>
-                  )}
+            {creatineEditing && <YStack gap={8}>
+               <Button onPress={() => {
+                  const parsed = Number(creatineAmountText.replace(',', '.'));
+                  const grams = Number.isNaN(parsed) ? creatineAmount : parsed;
+                  const finalVal = Math.max(0, Math.round(grams * 100) / 100);
+                  setCreatineAmount(finalVal); setCreatineAmountText(String(finalVal)); setCreatineEditing(false);
+                  setIsAmountFocused(false); setCreatinePrevAmount(null); setPrevIncludeCreatine(null);
+               }} minHeight={48} borderRadius={2} backgroundColor={fg}><Text color="#0c0c0c" fontFamily="$body" fontWeight="700">Save creatine amount</Text></Button>
+               <Button onPress={() => {
+                  if (creatinePrevAmount !== null) { setCreatineAmount(creatinePrevAmount); setCreatineAmountText(String(creatinePrevAmount)); }
+                  if (prevIncludeCreatine !== null) setIncludeCreatine(prevIncludeCreatine);
+                  setCreatineEditing(false); setIsAmountFocused(false); setCreatinePrevAmount(null); setPrevIncludeCreatine(null);
+               }} minHeight={44} borderRadius={2} borderWidth={1} borderColor={line} backgroundColor="transparent"><Text color={muted}>Cancel</Text></Button>
+            </YStack>}
 
-                  {!creatineEditing &&
-                     !isAmountFocused &&
-                     !quickEdit.active &&
-                     !pickerState.mode && (
-                        <View className='flex-row gap-2'>
-                           <Button
-                              variant='solid'
-                              onPress={handleConfirm}
-                              className='flex-1'>
-                              <ButtonText>{isEditing ? 'Save' : 'Log'}</ButtonText>
-                           </Button>
-                           {isEditing && (
-                              <Button
-                                 variant='solid'
-                                 className='bg-red-700 items-center justify-center w-8'
-                                 onPress={handleDelete}>
-                                 <Trash
-                                    size={16}
-                                    color={'white'}
-                                 />
-                              </Button>
-                           )}
-                        </View>
-                     )}
-
-                  {quickEdit.active && (
-                     <View className='px-2 gap-2'>
-                        <View className='flex-row items-center gap-2'>
-                           <Button
-                              variant='solid'
-                              onPress={saveQuick}
-                              className='flex-1 justify-center'>
-                              <ButtonText>Save</ButtonText>
-                           </Button>
-
-                           {quickEdit.index !== null && (
-                              <Button
-                                 variant='solid'
-                                 className='bg-red-700 items-center justify-center w-8'
-                                 onPress={deleteQuick}>
-                                 <Trash
-                                    size={16}
-                                    color={'white'}
-                                 />
-                              </Button>
-                           )}
-                        </View>
-
-                        <Button
-                           variant='outline'
-                           onPress={cancelQuick}
-                           className='w-full'>
-                           <ButtonText>Cancel</ButtonText>
-                        </Button>
-                     </View>
-                  )}
-
-                  {creatineEditing && (
-                     <View className='px-2 gap-2'>
-                        <View className='flex-row items-center gap-2'>
-                           <Button
-                              variant='solid'
-                              onPress={() => {
-                                 // Commit creatine amount and exit edit mode
-                                 const parsed = Number(creatineAmountText.replace(',', '.'));
-                                 const grams = Number.isNaN(parsed) ? creatineAmount : parsed;
-                                 const finalVal = Math.max(0, Math.round(grams * 100) / 100);
-                                 setCreatineAmount(finalVal);
-                                 setCreatineAmountText(String(finalVal));
-                                 setCreatineEditing(false);
-                                 setIsAmountFocused(false);
-                                 setCreatinePrevAmount(null);
-                                 setPrevIncludeCreatine(null);
-                              }}
-                              className='flex-1 justify-center'>
-                              <ButtonText>Save</ButtonText>
-                           </Button>
-                        </View>
-
-                        <Button
-                           variant='outline'
-                           onPress={() => {
-                              // Revert any changes and exit edit mode
-                              if (creatinePrevAmount !== null) {
-                                 setCreatineAmount(creatinePrevAmount);
-                                 setCreatineAmountText(String(creatinePrevAmount));
-                              }
-                              if (prevIncludeCreatine !== null) {
-                                 setIncludeCreatine(prevIncludeCreatine);
-                              }
-                              setCreatineEditing(false);
-                              setIsAmountFocused(false);
-                              setCreatinePrevAmount(null);
-                              setPrevIncludeCreatine(null);
-                           }}
-                           className='w-full'>
-                           <ButtonText>Cancel</ButtonText>
-                        </Button>
-                     </View>
-                  )}
-               </View>
-            </ActionsheetScrollView>
-         </ActionsheetContent>
-      </Actionsheet>
-   );
+            {actionError ? <Text color="#ff8585" fontFamily="$body" fontSize={12} role="alert" aria-live="polite">{actionError}</Text> : null}
+            {!creatineEditing && !isAmountFocused && !quickEdit.active && !pickerState.mode && <XStack gap={8}>
+               <Button onPress={() => { void handleConfirm(); }} disabled={saving} flex={1} minHeight={50} borderRadius={2} backgroundColor={accent} role="button" opacity={saving ? 0.6 : 1}><Text color="#0c0c0c" fontFamily="$body" fontSize={14} fontWeight="700">{saving ? 'Saving…' : isEditing ? 'Save entry' : 'Log entry'}</Text></Button>
+               {isEditing && <Button onPress={() => { void handleDelete(); }} disabled={saving} minWidth={50} minHeight={50} borderRadius={2} borderWidth={1} borderColor="#6b3434" backgroundColor="transparent" role="button" aria-label="Delete this entry" opacity={saving ? 0.6 : 1}><Trash size={17} color="#ff8585" /></Button>}
+            </XStack>}
+         </Sheet.ScrollView>
+      </Sheet.Frame>
+   </Sheet>;
 };
 
 export default IntakeDrawer;

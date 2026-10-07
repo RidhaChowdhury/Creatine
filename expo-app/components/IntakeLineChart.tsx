@@ -1,10 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View } from 'react-native';
 import { CartesianChart, Line } from 'victory-native';
 import { DashPathEffect } from '@shopify/react-native-skia';
 import { useFont } from '@shopify/react-native-skia';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Box } from './ui/box';
+import { Button, Text, XStack, YStack } from 'tamagui';
 
 const spacemono: any = require('@/assets/fonts/SpaceMono-Regular.ttf');
 
@@ -89,47 +88,19 @@ export const HistoryChart = ({
    return (
       <View>
          <View style={{ height, position: 'relative' }}>
-            <View className='flex-row justify-between items-center mb-2 pl-[7] pr-[5]'>
-               <Text className='text-lg text-white font-semibold'>{title}</Text>
+            <XStack justifyContent="space-between" alignItems="center" marginBottom={9} paddingHorizontal={3} minHeight={44}>
+               <Text color="#e9e9e9" fontFamily="$heading" fontSize={24} fontWeight="600">{title}</Text>
                {/* Range buttons overlay (optional) */}
                {Array.isArray(rangeOptions) && onRangeChange ? (
-                  <View style={styles.rangeContainer}>
+                  <XStack alignItems="center">
                      {rangeOptions.map((opt) => (
-                        <View
-                           key={opt}
-                           style={{ margin: 0 }}>
-                           {(() => {
-                              const idx = rangeOptions.indexOf(opt);
-                              const isFirst = idx === 0;
-                              const isLast = idx === rangeOptions.length - 1;
-                              const btnStyle: any = { borderRadius: 0 };
-
-                              if (isFirst) {
-                                 btnStyle.borderTopLeftRadius = 8;
-                                 btnStyle.borderBottomLeftRadius = 8;
-                              } else if (isLast) {
-                                 btnStyle.borderTopRightRadius = 8;
-                                 btnStyle.borderBottomRightRadius = 8;
-                              }
-
-                              return (
-                                 <Button
-                                    size='sm'
-                                    variant={currentRange === opt ? 'solid' : 'outline'}
-                                    onPress={() => onRangeChange(opt)}
-                                    style={btnStyle}>
-                                    <ButtonText
-                                       className={`text-xs ${currentRange === opt ? 'text-black' : 'text-typography-500'}`}>
-                                       {opt === 7 ? '7D' : opt === 30 ? '1M' : '3M'}
-                                    </ButtonText>
-                                 </Button>
-                              );
-                           })()}
-                        </View>
+                        <Button key={opt} onPress={() => onRangeChange(opt)} minWidth={44} height={40} borderRadius={0} borderWidth={1} borderColor={currentRange === opt ? '#398eff' : '#353535'} backgroundColor={currentRange === opt ? '#101b29' : 'transparent'} marginLeft={-1}>
+                           <Text color={currentRange === opt ? '#e9e9e9' : '#999'} fontFamily="$mono" fontSize={10}>{opt}D</Text>
+                        </Button>
                      ))}
-                  </View>
+                  </XStack>
                ) : null}
-            </View>
+            </XStack>
             <CartesianChart
                data={data}
                xKey={resolvedXKey}
@@ -139,9 +110,9 @@ export const HistoryChart = ({
                xAxis={{
                   font: font,
                   tickCount: computedTickCount,
-                  lineColor: '#fff',
+                  lineColor: '#555',
                   lineWidth: 0.25,
-                  labelColor: '#fff',
+                  labelColor: '#999',
                   axisSide: 'bottom',
                   formatXLabel: (x) => (typeof x === 'string' ? x.slice(-2) : `${x}`)
                }}
@@ -150,9 +121,9 @@ export const HistoryChart = ({
                      font: font,
                      tickCount: computedYTickCount,
                      tickValues: computedYTickValues,
-                     lineColor: '#fff',
+                     lineColor: '#555',
                      lineWidth: 1,
-                     labelColor: '#fff',
+                     labelColor: '#999',
                      labelOffset: 10,
                      labelPosition: 'outset',
                      axisSide: 'left',
@@ -189,46 +160,15 @@ export const HistoryChart = ({
             </CartesianChart>
          </View>
          {Array.isArray(lines) && lines.length > 0 ? (
-            <View style={styles.legendContainer}>
+            <XStack marginTop={9} flexWrap="wrap" justifyContent="center" gap={14}>
                {lines.map((l) => (
-                  <View
-                     key={l.key}
-                     style={styles.legendItem}>
-                     <View style={[styles.legendSwatch, { backgroundColor: l.color }]} />
-                     <Text style={styles.legendLabel}>{l.label ?? l.key}</Text>
-                  </View>
+                  <XStack key={l.key} alignItems="center" gap={6}>
+                     <YStack width={8} height={8} borderRadius={4} style={{ backgroundColor: l.color }} />
+                     <Text color="#999" fontFamily="$mono" fontSize={10}>{(l.label ?? l.key).toUpperCase()}</Text>
+                  </XStack>
                ))}
-            </View>
+            </XStack>
          ) : null}
       </View>
    );
 };
-
-const styles = StyleSheet.create({
-   rangeContainer: {
-      flexDirection: 'row',
-      alignItems: 'center'
-   },
-   legendContainer: {
-      marginTop: 8,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'center'
-   },
-   legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginHorizontal: 8,
-      marginTop: 4
-   },
-   legendSwatch: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      marginRight: 6
-   },
-   legendLabel: {
-      color: '#fff',
-      fontSize: 12
-   }
-});

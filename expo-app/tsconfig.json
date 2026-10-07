@@ -3,8 +3,7 @@
       // "jsx": "react-native",
       "strict": true,
       "paths": {
-         "@/*": ["./*"],
-         "tailwind.config": ["./tailwind.config.js"]
+         "@/*": ["./*"]
       },
       "types": ["@types/react-native-dotenv"]
    },
@@ -13,8 +12,8 @@
       "**/*.tsx",
       ".expo/types/**/*.ts",
       "expo-env.d.ts",
-      "nativewind-env.d.ts",
       "lib/notifications.js"
    ],
-   "extends": "expo/tsconfig.base"
+   "extends": "expo/tsconfig.base",
+   "exclude": ["node_modules", "components/ui", "nativewind-env.d.ts", "supabase/functions", "artifacts", "qa", "dist", "dist-pitwall", "dist-native"]
 }

@@ -1,0 +1,49 @@
+name: Drops manual isolated native smoke
+# Prepared, not executed. Supply an existing Android APK or iOS simulator build.
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        type: string
+        required: true
+        description: Existing preview APK or simulator build ID (not an ad-hoc iOS build)
+      target:
+        type: choice
+        required: true
+        default: android
+        options: [android, iphone, ipad]
+      ios_device:
+        type: string
+        required: false
+        default: ''
+        description: Optional exact simulator name from runner device logs
+defaults:
+  tools:
+    node: '22.23.3'
+jobs:
+  android_smoke:
+    if: ${{ inputs.target == 'android' }}
+    type: maestro
+    environment: preview
+    env:
+      MAESTRO_APP_ID: com.samlau25.expoapp
+    params:
+      build_id: ${{ inputs.build_id }}
+      flow_path: .maestro/native-smoke.yml
+      device_identifier: pixel_6
+      retries: 0
+      record_screen: false
+  ios_smoke:
+    if: ${{ inputs.target != 'android' }}
+    type: maestro
+    environment: preview
+    image: macos-sequoia-15.6-xcode-26.0
+    env:
+      MAESTRO_APP_ID: com.samlau25.expo-app
+    params:
+      build_id: ${{ inputs.build_id }}
+      flow_path: .maestro/native-smoke.yml
+      device_identifier: ${{ inputs.ios_device || (inputs.target == 'ipad' && 'iPad Pro 13-inch (M4)' || 'iPhone 16 Plus') }}
+      retries: 0
+      record_screen: false
+      skip_build_check: false

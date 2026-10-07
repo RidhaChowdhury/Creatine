@@ -1,0 +1,7 @@
+# Cloud builds regenerate native projects from Expo config and installed plugins.
+ios/**
+android/**
+artifacts/**
+qa/**
+docs/**
+e2e/**

@@ -1,0 +1,39 @@
+name: Drops serialized manual production web
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: drops-production-web
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    defaults:
+      run:
+        working-directory: expo-app
+    steps:
+      - name: Check Expo token prerequisite
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'Configure the repository EXPO_TOKEN secret before manually dispatching production candidates.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+      - name: Install locked app dependencies
+        run: node scripts/retry-infrastructure.mjs -- npm ci
+      - name: Dispatch candidate and wait through final EAS approval
+        run: npx --yes eas-cli@24.10.0 workflow:run .eas/workflows/production-web.yml --wait --non-interactive

@@ -104,7 +104,7 @@ export class NotificationService {
       }
    }
 
-   static async cancelAllCreatineNotifications(): Promise<void> {
+   static async cancelAllCreatineNotifications(options: { throwOnError?: boolean } = {}): Promise<void> {
       try {
          const notifications = await this.getCreatineNotifications();
 
@@ -115,6 +115,7 @@ export class NotificationService {
          await this.clearCreatineNotifications();
       } catch (error) {
          console.error('Error cancelling creatine notifications:', error);
+         if (options.throwOnError) throw error;
       }
    }
 
@@ -319,26 +320,14 @@ export class NotificationService {
    static async initialize(): Promise<{ showReminderTimeModal: boolean }> {
       try {
          const hasPermission = await NotificationService.checkPermissions();
-         if (!hasPermission) {
-            const granted = await NotificationService.requestPermissions();
-            if (granted) {
-               return { showReminderTimeModal: true };
-            }
-            return { showReminderTimeModal: false };
-         } else {
-            await this.cleanupOrphanedNotifications();
+         if (!hasPermission) return { showReminderTimeModal: false };
 
-            // if user's creatineReminderTIme is still null but we have permission, show the modal
-            const creatineReminderTime = store.getState().settings.creatine_reminder_time;
-            if (creatineReminderTime === null) {
-               return { showReminderTimeModal: true };
-            } else {
-               // Maintain notifications on app startup
-               await this.maintainCreatineNotifications(creatineReminderTime);
-            }
-
-            return { showReminderTimeModal: false };
+         await this.cleanupOrphanedNotifications();
+         const creatineReminderTime = store.getState().settings.creatine_reminder_time;
+         if (creatineReminderTime && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(creatineReminderTime)) {
+            await this.maintainCreatineNotifications(creatineReminderTime);
          }
+         return { showReminderTimeModal: false };
       } catch (error) {
          console.error('Error initializing notification service:', error);
          return { showReminderTimeModal: false };

@@ -1,0 +1,52 @@
+import { test, expect, onboard, assertNoOverflow } from './helpers';
+test('custom medication unequal schedule editing and archive retain actual History', async ({ page }) => {
+    await onboard(page);
+    await page.getByRole('button', { name: 'Supps', exact: true }).click();
+    await page.getByRole('button', { name: 'Add tracker', exact: true }).click();
+    await page.getByLabel('Name', { exact: true }).fill('Synthetic custom medication');
+    await page.getByRole('button', { name: 'medication', exact: true }).click();
+    await page.getByLabel('Saved dose (optional)', { exact: true }).fill('2.5');
+    await page.getByRole('button', { name: 'scheduled', exact: true }).click();
+    await page.getByRole('button', { name: 'Multiple doses +', exact: true }).click();
+    await page.getByLabel('Dose 1 time', { exact: true }).fill('08:00');
+    await page.getByLabel('Dose 1 amount', { exact: true }).fill('2.5');
+    await page.getByRole('button', { name: 'Multiple doses +', exact: true }).click();
+    await page.getByLabel('Dose 2 time', { exact: true }).fill('18:00');
+    await page.getByLabel('Dose 2 amount', { exact: true }).fill('1.25');
+    await page.getByRole('button', { name: 'Save tracker', exact: true }).click();
+    await expect(page.getByText('Synthetic custom medication', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 of 2 complete · 3.75 g remaining', { exact: true })).toBeVisible();
+    await page.getByRole('group', { name: 'Synthetic custom medication tracker', exact: true }).getByRole('button', { name: 'Log intake', exact: true }).click();
+    await page.getByLabel('Note (optional)', { exact: true }).fill('Local fixture only');
+    await page.getByRole('button', { name: 'Save intake', exact: true }).click();
+    await page.getByRole('button', { name: 'History', exact: true }).click();
+    await page.getByRole('button', { name: /Edit Synthetic custom medication, 2.5 g/ }).click();
+    await page.getByLabel('Amount', { exact: true }).fill('1.25');
+    await page.getByRole('button', { name: 'Save intake', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Edit Synthetic custom medication, 1.25 g/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Undo exact change', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Edit Synthetic custom medication, 2.5 g/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Supps', exact: true }).click();
+    await page.getByRole('group', { name: 'Synthetic custom medication tracker', exact: true }).getByRole('button', { name: 'Archive tracker', exact: true }).click();
+    await expect(page.getByText('Synthetic custom medication', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'History', exact: true }).click();
+    await expect(page.getByRole('button', { name: /Edit Synthetic custom medication, 2.5 g/ })).toBeVisible();
+    await page.getByRole('button', { name: 'Filter all trackers', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Synthetic custom medication (archived)', exact: true })).toBeVisible();
+});
+for (const size of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 797, height: 884 }, { width: 1440, height: 900 }])
+    test(`responsive sheet preserves input across resizing ${size.width}`, async ({ page }) => {
+        await page.setViewportSize(size);
+        await onboard(page);
+        await assertNoOverflow(page);
+        await page.getByRole('button', { name: 'Supps', exact: true }).click();
+        await page.getByRole('button', { name: 'Add tracker', exact: true }).click();
+        await page.getByLabel('Name', { exact: true }).fill('Retained draft');
+        await page.setViewportSize({ width: size.height, height: size.width });
+        await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Retained draft');
+        await assertNoOverflow(page);
+        await page.getByRole('button', { name: 'Save tracker', exact: true }).scrollIntoViewIfNeeded();
+        await expect(page.getByRole('button', { name: 'Save tracker', exact: true })).toBeVisible();
+        await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    });
+

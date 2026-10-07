@@ -35,6 +35,8 @@ yarn-error.*
 .env*.local
 expo-app/.env
 expo-app/.env.*
+!expo-app/.env.example
+!expo-app/.env.test.example
 
 # typescript
 *.tsbuildinfo

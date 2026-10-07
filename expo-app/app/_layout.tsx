@@ -4,16 +4,18 @@ import { store } from '@/store/store';
 import { Provider } from 'react-redux';
 import { AppInit } from '@/features/appInit';
 
-import '@/global.css';
-import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { AppUIProvider } from '@/components/AppUIProvider';
+import { FeedbackProvider } from '@/components/FeedbackProvider';
 
 export default function RootLayout() {
    return (
       <Provider store={store}>
-         <GluestackUIProvider mode='dark'>
+         <AppUIProvider>
+            <FeedbackProvider>
             <AppInit />
             <Stack screenOptions={{ headerShown: false }} />
-         </GluestackUIProvider>
+            </FeedbackProvider>
+         </AppUIProvider>
       </Provider>
    );
 }

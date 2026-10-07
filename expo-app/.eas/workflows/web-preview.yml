@@ -1,0 +1,64 @@
+name: Drops web preview
+on:
+  pull_request:
+    branches: ['main']
+    paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
+  push:
+    branches: ['main']
+    paths: ['expo-app/**', '!expo-app/docs/**', '.easignore']
+  workflow_dispatch: {}
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+defaults:
+  tools:
+    node: '22.23.3'
+jobs:
+  validate:
+    environment: preview
+    env:
+      EXPO_NO_DOTENV: '1'
+    steps:
+      - uses: eas/checkout
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
+      - run: node scripts/guard-preview.mjs
+      - run: npm run doctor -- --local
+      - run: npm run verify
+      - run: npm run build:web
+      - run: node scripts/retry-infrastructure.mjs -- npx playwright install --with-deps chromium
+      - run: node scripts/run-browser-tests.mjs
+      - uses: eas/upload_artifact
+        with:
+          path: expo-app/artifacts
+          name: web-validation
+          type: other
+  deploy:
+    needs: [validate]
+    type: deploy
+    environment: preview
+    env:
+      EXPO_NO_DOTENV: '1'
+    params:
+      prod: false
+    hooks:
+      after_install_node_modules:
+        - run: node scripts/guard-preview.mjs
+  verify_deployment:
+    needs: [deploy]
+    environment: preview
+    env:
+      DROPS_ENV: preview
+      DROPS_VALIDATION_RESULT: passed
+      DROPS_DEPLOY_URL: ${{ needs.deploy.outputs.deploy_deployment_url }}
+      DROPS_DEPLOY_ID: ${{ needs.deploy.outputs.deploy_identifier }}
+      EXPO_NO_DOTENV: '1'
+    steps:
+      - uses: eas/checkout
+      - run: node scripts/retry-infrastructure.mjs -- npm ci
+      - run: node scripts/verify-deployment.mjs
+      - run: npm run release:manifest
+      - uses: eas/upload_artifact
+        with:
+          path: expo-app/artifacts
+          name: web-release-evidence
+          type: other

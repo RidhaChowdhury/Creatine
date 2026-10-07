@@ -1,50 +1,31 @@
-# Welcome to your Expo app 👋
+# Drops
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo app for water intake and supplement/medication tracking. The interface uses
+Tamagui, with Skia rendering the water scene. The app runs on web, iOS, and
+Android; browser export does not create an installable device build.
 
-## Get started
+## Start developing
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Use Node.js 22 or 24 (the pinned version is 22.23.3) and install the lockfile
+dependencies:
 
 ```bash
-npm run reset-project
+npm ci
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+For cloud-backed development, configure `.env.local` from `.env.example`, then
+run `npm run dev`. For isolated browser development without cloud credentials,
+run `npm run dev:local`. To use the separate test backend, configure
+`.env.test.local` and run `npm run dev:test`; that command rejects the production
+Supabase project. See [Development](docs/development.md) for environment
+details, diagnostics, and commands.
 
-## Learn more
+## Project guide
 
-To learn more about developing your project with Expo, look at the following resources:
+- [Development](docs/development.md) — local setup, environment modes, and checks
+- [Data and release](docs/data-and-release.md) — storage, migrations, and release checklist
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Before sharing a change, run `npm run verify`. `npm run doctor` checks the cloud
+environment by default; pass `-- --local` for offline local setup checks, or
+`-- --backend` for read-only backend health/schema probes. See the release
+checklist for outstanding test-project and physical-device checks.

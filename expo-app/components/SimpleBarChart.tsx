@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { CartesianChart, Bar } from 'victory-native';
 import { DashPathEffect } from '@shopify/react-native-skia';
 import { useFont } from '@shopify/react-native-skia';
+import { Text, XStack, YStack } from 'tamagui';
 
 const spacemono: any = require('@/assets/fonts/SpaceMono-Regular.ttf');
 
@@ -51,9 +52,9 @@ export const SimpleBarChart: React.FC<Props> = ({
 
    return (
       <View style={{ height }}>
-         <View className='flex-row justify-between items-end mb-2 pl-[7] pr-[5]'>
-            <Text className='text-[20px] text-white font-semibold'>{title}</Text>
-         </View>
+         <XStack justifyContent="space-between" alignItems="center" marginBottom={9} paddingHorizontal={3} minHeight={44}>
+            <Text color="#e9e9e9" fontFamily="$heading" fontSize={24} fontWeight="600">{title}</Text>
+         </XStack>
          <CartesianChart
             data={chartData}
             xKey='x'
@@ -63,9 +64,9 @@ export const SimpleBarChart: React.FC<Props> = ({
             xAxis={{
                font: font,
                tickCount: computedTickCount,
-               lineColor: '#fff',
+               lineColor: '#555',
                lineWidth: 0.25,
-               labelColor: '#fff',
+               labelColor: '#999',
                axisSide: 'bottom',
                formatXLabel: (x) => {
                   if (typeof x === 'number') {
@@ -80,9 +81,9 @@ export const SimpleBarChart: React.FC<Props> = ({
                   font: font,
                   tickCount: computedYTickCount,
                   tickValues: computedYTickValues,
-                  lineColor: '#fff',
+                  lineColor: '#555',
                   lineWidth: 1,
-                  labelColor: '#fff',
+                  labelColor: '#999',
                   labelOffset: 10,
                   labelPosition: 'outset',
                   axisSide: 'left',
@@ -109,42 +110,12 @@ export const SimpleBarChart: React.FC<Props> = ({
             )}
          </CartesianChart>
          {/* Legend */}
-         <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-               <View style={[styles.legendSwatch, { backgroundColor: todayColor }]} />
-               <Text style={styles.legendLabel}>Today</Text>
-            </View>
-            <View style={styles.legendItem}>
-               <View style={[styles.legendSwatch, { backgroundColor: avgColor }]} />
-               <Text style={styles.legendLabel}>30d Avg</Text>
-            </View>
-         </View>
+         <XStack marginTop={9} alignItems="center" justifyContent="center" gap={18}>
+            <XStack alignItems="center" gap={6}><YStack width={8} height={8} style={{ backgroundColor: todayColor }} /><Text color="#999" fontFamily="$mono" fontSize={10}>TODAY</Text></XStack>
+            <XStack alignItems="center" gap={6}><YStack width={8} height={8} style={{ backgroundColor: avgColor }} /><Text color="#999" fontFamily="$mono" fontSize={10}>30D AVG</Text></XStack>
+         </XStack>
       </View>
    );
 };
 
 export default SimpleBarChart;
-
-const styles = StyleSheet.create({
-   legendContainer: {
-      marginTop: 8,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center'
-   },
-   legendItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginHorizontal: 10
-   },
-   legendSwatch: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      marginRight: 6
-   },
-   legendLabel: {
-      color: '#ffffff',
-      fontSize: 12
-   }
-});

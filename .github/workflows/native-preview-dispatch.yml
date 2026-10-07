@@ -1,0 +1,49 @@
+name: Drops serialized native preview
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - expo-app/**
+      - '!expo-app/docs/**'
+      - '!expo-app/e2e/**'
+      - '!expo-app/artifacts/**'
+      - .easignore
+      - .github/workflows/native-preview-dispatch.yml
+permissions:
+  contents: read
+# One active GitHub dispatcher across all refs; wait for its remote EAS run.
+concurrency:
+  group: drops-native-preview
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    defaults:
+      run:
+        working-directory: expo-app
+    steps:
+      - name: Check Expo token prerequisite
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${EXPO_TOKEN:-}" ]; then
+            echo 'Configure the repository EXPO_TOKEN secret for the existing Expo project before dispatching native previews.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.3'
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+      - name: Install locked app dependencies
+        run: node scripts/retry-infrastructure.mjs -- npm ci
+      - name: Dispatch and wait for remote preview completion
+        run: npx --yes eas-cli@24.10.0 workflow:run .eas/workflows/native-preview.yml --wait --non-interactive

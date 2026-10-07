@@ -1,9 +1,7 @@
 import React from 'react';
-import { View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { useSelector } from 'react-redux';
-import { Text } from '@/components/ui/text';
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
+import { Button, Text, XStack, YStack } from 'tamagui';
 import CreatineScoopIcon from './CreatineScoop';
 import { GlassWater } from 'lucide-react-native';
 import IntakeDrawer from './IntakeDrawer';
@@ -24,6 +22,7 @@ import {
 } from '@/features/settings/settingsSlice';
 import CombinedHeatCalendar, { CombinedDayData } from './CombinedHeatCalendar';
 import { CirclePlus } from 'lucide-react-native';
+import { entryDate, localDay } from '@/lib/dateTime';
 
 interface IntakeLog {
    id: string;
@@ -32,6 +31,7 @@ interface IntakeLog {
    consumable: string;
    consumed_at: string;
 }
+type CombinedLogItem = { time: string; water?: IntakeLog; creatine?: IntakeLog };
 
 // Use local date parts (not toISOString) so late-night local times don't roll to next UTC day
 const formatDate = (d: Date) => {
@@ -40,6 +40,7 @@ const formatDate = (d: Date) => {
    const dd = String(d.getDate()).padStart(2, '0');
    return `${yyyy}-${mm}-${dd}`;
 };
+const localDateForLog = (value: string) => localDay(value);
 
 const convertWater = (amount: number, unit: string, targetUnit: string) => {
    if (unit === targetUnit) return amount;
@@ -54,7 +55,7 @@ const convertCreatine = (amount: number, unit: string, targetUnit: string) => {
    return amount;
 };
 
-export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
+export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 30 }) => {
    const drinkLogs = useSelector(selectDrinkLogs) as IntakeLog[];
    const creatineLogs = useSelector(selectCreatineLogs) as IntakeLog[];
    const waterGoal = useSelector(selectWaterGoal) || 0;
@@ -82,14 +83,14 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       }
 
       drinkLogs.forEach((log) => {
-         const date = log.consumed_at.slice(0, 10);
+         const date = localDateForLog(log.consumed_at);
          if (!map[date]) return;
          if (log.consumable === 'water') {
             map[date].water += convertWater(log.amount, log.unit, drinkUnit);
          }
       });
       creatineLogs.forEach((log) => {
-         const date = log.consumed_at.slice(0, 10);
+         const date = localDateForLog(log.consumed_at);
          if (!map[date]) return;
          map[date].creatine += convertCreatine(log.amount, log.unit, supplementUnit);
       });
@@ -110,34 +111,43 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
    const dayCreatineLogs = React.useMemo(
       () =>
          creatineLogs
-            .filter((l) => l.consumed_at.startsWith(selectedDay))
+            .filter((l) => localDateForLog(l.consumed_at) === selectedDay)
             .sort((a, b) => (a.consumed_at < b.consumed_at ? -1 : 1)),
       [creatineLogs, selectedDay]
    );
    const dayWaterLogs = React.useMemo(
       () =>
          drinkLogs
-            .filter((l) => l.consumed_at.startsWith(selectedDay) && l.consumable === 'water')
+            .filter((l) => localDateForLog(l.consumed_at) === selectedDay && l.consumable === 'water')
             .sort((a, b) => (a.consumed_at < b.consumed_at ? -1 : 1)),
       [drinkLogs, selectedDay]
    );
 
    // Consolidate logs that share the exact same timestamp into a single chip
    const dayCombinedLogs = React.useMemo(() => {
-      const map = new Map<string, { time: string; water?: IntakeLog; creatine?: IntakeLog }>();
+      const map = new Map<string, { time: string; water: IntakeLog[]; creatine: IntakeLog[] }>();
       dayWaterLogs.forEach((w) => {
          const t = w.consumed_at;
-         const entry = map.get(t) || { time: t };
-         entry.water = w;
+         const entry = map.get(t) || { time: t, water: [], creatine: [] };
+         entry.water.push(w);
          map.set(t, entry);
       });
       dayCreatineLogs.forEach((c) => {
          const t = c.consumed_at;
-         const entry = map.get(t) || { time: t };
-         entry.creatine = c;
+         const entry = map.get(t) || { time: t, water: [], creatine: [] };
+         entry.creatine.push(c);
          map.set(t, entry);
       });
-      return Array.from(map.values()).sort((a, b) => (a.time < b.time ? -1 : 1));
+      // Pair only unambiguous single entries. Duplicate same-second rows stay separate
+      // so every edit action continues to target its own stored ID.
+      return Array.from(map.values())
+         .flatMap((entry) => entry.water.length === 1 && entry.creatine.length === 1
+            ? [{ time: entry.time, water: entry.water[0], creatine: entry.creatine[0] } as CombinedLogItem]
+            : [
+               ...entry.water.map((water): CombinedLogItem => ({ time: entry.time, water })),
+               ...entry.creatine.map((creatine): CombinedLogItem => ({ time: entry.time, creatine }))
+            ])
+         .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : `${a.water?.id ?? ''}${a.creatine?.id ?? ''}`.localeCompare(`${b.water?.id ?? ''}${b.creatine?.id ?? ''}`)));
    }, [dayWaterLogs, dayCreatineLogs]);
 
    const selectedDayData = calendarData.find((d) => d.date === selectedDay);
@@ -181,7 +191,7 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
       setSheetOpen(true);
    };
 
-   const openEditCombined = (item: { time: string; water?: IntakeLog; creatine?: IntakeLog }) => {
+   const openEditCombined = (item: CombinedLogItem) => {
       if (item.water) {
          setSheetInitial({
             id: item.water.id,
@@ -205,17 +215,12 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
    // Handlers now live inside IntakeDrawer
 
    return (
-      <View>
+      <YStack>
          {loading ? (
-            <View className='py-8'>
-               <ActivityIndicator
-                  size='large'
-                  color='#ffffff'
-               />
-            </View>
+               <YStack paddingVertical={32} alignItems="center"><ActivityIndicator size="large" color="#e9e9e9" /></YStack>
          ) : (
-            <VStack>
-               <Box className='mt-4 bg-primary-0 rounded-[15px]'>
+            <YStack>
+               <YStack paddingVertical={12} borderBottomWidth={1} borderColor="#353535">
                   <CombinedHeatCalendar
                      data={calendarData}
                      endDate={formatDate(new Date())}
@@ -224,32 +229,24 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                      onDayPress={(d) => setSelectedDay(d)}
                   />
 
-                  <View className='px-4 pb-4'>
-                     <View className='flex flex-row justify-between items-center'>
-                        <Text className='text-lg font-bold'>{displaySelectedDay}</Text>
-                        <Text className='text-sm'>
-                           {selectedDayData?.waterAmount ?? 0} / {waterGoal} {drinkUnit}
-                        </Text>
-                        <Text className='text-sm'>
-                           {selectedDayData?.creatineAmount ?? 0} / {creatineGoal} {supplementUnit}
-                        </Text>
-                        <TouchableOpacity onPress={() => openNew()}>
-                           <CirclePlus
-                              color='#ffffff'
-                              size={18}
-                           />
-                        </TouchableOpacity>
-                     </View>
+                  <YStack paddingHorizontal={4} paddingBottom={12}>
+                     <XStack alignItems="center" justifyContent="space-between" gap={8} flexWrap="wrap" minHeight={46}>
+                        <Text color="#e9e9e9" fontFamily="$heading" fontSize={23} fontWeight="600">{displaySelectedDay}</Text>
+                        <XStack gap={12} flexWrap="wrap">
+                           <Text color="#aaa" fontFamily="$mono" fontSize={10}>{(selectedDayData?.waterAmount ?? 0).toFixed(0)} / {waterGoal} {drinkUnit}</Text>
+                           <Text color="#aaa" fontFamily="$mono" fontSize={10}>{(selectedDayData?.creatineAmount ?? 0).toFixed(1)} / {creatineGoal} {supplementUnit}</Text>
+                        </XStack>
+                        <Button unstyled onPress={openNew} role="button" aria-label="Add intake for selected day" width={44} height={44} alignItems="center" justifyContent="center">
+                           <CirclePlus color="#398eff" size={20} />
+                        </Button>
+                     </XStack>
                      {dayCombinedLogs.length === 0 && (
-                        <Text className='text-sm mb-2'>No logs for this day...</Text>
+                        <Text color="#888" fontFamily="$body" fontSize={13} paddingVertical={9}>No logs for this day.</Text>
                      )}
                      {dayCombinedLogs.map((item) => (
-                        <TouchableOpacity
-                           key={`${item.time}-${item.water?.id || 'w'}-${item.creatine?.id || 'c'}`}
-                           onPress={() => openEditCombined(item)}>
-                           <Box className='p-3 rounded-lg bg-background-100 mb-2'>
-                              <View className='flex-row justify-between'>
-                                 <Text>
+                        <Button unstyled key={`${item.time}-${item.water?.id || 'w'}-${item.creatine?.id || 'c'}`} onPress={() => openEditCombined(item)} role="button" aria-label={`Edit intake at ${entryDate(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`} minHeight={48} borderTopWidth={1} borderColor="#262626" paddingHorizontal={3}>
+                              <XStack justifyContent="space-between" alignItems="center" width="100%">
+                                 <Text color="#e9e9e9" fontFamily="$mono" fontSize={12}>
                                     {item.water && (
                                        <>
                                           {convertWater(
@@ -272,27 +269,26 @@ export const CombinedHistory: React.FC<{ days?: number }> = ({ days = 28 }) => {
                                        </>
                                     )}
                                  </Text>
-                                 <Text>
-                                    {new Date(item.time).toLocaleTimeString([], {
+                                 <Text color="#999" fontFamily="$mono" fontSize={11}>
+                                    {entryDate(item.time).toLocaleTimeString([], {
                                        hour: '2-digit',
                                        minute: '2-digit'
                                     })}
                                  </Text>
-                              </View>
-                           </Box>
-                        </TouchableOpacity>
+                              </XStack>
+                        </Button>
                      ))}
-                  </View>
-               </Box>
+                  </YStack>
+               </YStack>
 
                <IntakeDrawer
                   isOpen={sheetOpen}
                   initial={sheetInitial}
                   onClose={() => setSheetOpen(false)}
                />
-            </VStack>
+            </YStack>
          )}
-      </View>
+      </YStack>
    );
 };
 
