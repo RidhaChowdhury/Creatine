@@ -8,7 +8,10 @@ import { execFileSync } from 'node:child_process';
 import { loadEnvironment, buildEnvironment, projectRoot } from './project-env.mjs';
 const [platform='web', mode='local', output=platform==='web'?'dist-pitwall':'dist-native'] = process.argv.slice(2);
 if(!['web','native'].includes(platform))throw new Error('Export platform must be web or native.');
-const env = mode==='preview' ? buildEnvironment('test',process.env,process.env) : mode==='production' ? buildEnvironment('cloud',process.env,process.env) : loadEnvironment(mode);
+if(mode==='phone-preview' && platform!=='web')throw new Error('The account-free phone preview is a web-only export.');
+const env = mode==='phone-preview'
+  ? { ...loadEnvironment('local'), EXPO_PUBLIC_DROPS_PHONE_PREVIEW: '1' }
+  : mode==='preview' ? buildEnvironment('test',process.env,process.env) : mode==='production' ? buildEnvironment('cloud',process.env,process.env) : loadEnvironment(mode);
 const require=createRequire(import.meta.url);
 const destination = resolve(projectRoot, output);
 if (!destination.startsWith(projectRoot + sep)) throw new Error('Exports must stay inside the app workspace.');

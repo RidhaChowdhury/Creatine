@@ -14,9 +14,10 @@ jest.mock('expo-sqlite',()=>{
 });
 import { Platform } from 'react-native';
 import * as repository from '../repository';
-import { addSampleHistory } from '../sample-history';
+import { addSampleHistory, isSampleHistoryPreviewEligible } from '../sample-history';
 const testDb=(require('expo-sqlite') as any).__testDb;
 const cloud=require('../../supabase');
+const originalPhonePreviewFlag=process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW;
 
 describe('local sample history through the real SQLite repository',()=>{
   beforeAll(async()=>{
@@ -27,10 +28,15 @@ describe('local sample history through the real SQLite repository',()=>{
     await testDb.runAsync('INSERT INTO user_settings(name,height,weight,sex,water_goal,creatine_goal) VALUES(?,?,?,?,?,?)',['Existing owner',0,0,'unspecified',80,5]);
     await repository.savePreferences({timezone:'America/Chicago',bedtime:'21:30'});
   });
-  afterAll(()=>jest.useRealTimers());
+  afterAll(()=>{
+    jest.useRealTimers();
+    if(originalPhonePreviewFlag === undefined) delete process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW;
+    else process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW=originalPhonePreviewFlag;
+  });
 
   test('rejects cloud, hosted and native before any repository read',async()=>{
     const read=jest.spyOn(repository,'loadSnapshot');
+    delete process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW;
     cloud.supabase={};
     await expect(addSampleHistory()).rejects.toThrow('local web preview');
     cloud.supabase=null;
@@ -41,6 +47,33 @@ describe('local sample history through the real SQLite repository',()=>{
     await expect(addSampleHistory()).rejects.toThrow('local web preview');
     Object.defineProperty(Platform,'OS',{value:'web',configurable:true});
     expect(read).not.toHaveBeenCalled(); read.mockRestore();
+  });
+
+  test('flagged HTTPS previews allow only exact Drops preview hosts and keep cloud/native blocked',async()=>{
+    const read=jest.spyOn(repository,'loadSnapshot');
+    process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW='1';
+    window.location.protocol='https:';
+    for(const hostname of ['drops-ridha--abcdefghi.expo.app','drops-ridha--phone.expo.app']) {
+      window.location.hostname=hostname;
+      expect(isSampleHistoryPreviewEligible()).toBe(true);
+    }
+    for(const hostname of ['drops-ridha.expo.app','other--phone.expo.app','drops-ridha--phone.expo.app.evil.test','drops-ridha--phone-evil.expo.app']) {
+      window.location.hostname=hostname;
+      await expect(addSampleHistory()).rejects.toThrow('local web preview');
+    }
+    window.location.hostname='drops-ridha--phone.expo.app';
+    window.location.protocol='http:';
+    await expect(addSampleHistory()).rejects.toThrow('local web preview');
+    window.location.protocol='https:';
+    cloud.supabase={};
+    await expect(addSampleHistory()).rejects.toThrow('local web preview');
+    cloud.supabase=null;
+    Object.defineProperty(Platform,'OS',{value:'ios',configurable:true});
+    await expect(addSampleHistory()).rejects.toThrow('local web preview');
+    Object.defineProperty(Platform,'OS',{value:'web',configurable:true});
+    expect(read).not.toHaveBeenCalled(); read.mockRestore();
+    delete process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW;
+    window.location.hostname='127.0.0.1';
   });
 
   test('fills 30 complete timezone days, preserves real totals and every profile/settings value',async()=>{
@@ -54,7 +87,12 @@ describe('local sample history through the real SQLite repository',()=>{
     const before=await repository.loadSnapshot();
     const settings=await testDb.getAllAsync('SELECT * FROM user_settings');
     const progress=jest.fn();
+    process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW='1';
+    window.location.hostname='drops-ridha--phone.expo.app';
+    window.location.protocol='https:';
     const result=await addSampleHistory({onProgress:progress});
+    delete process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW;
+    window.location.hostname='127.0.0.1';
     expect(result).toEqual({added:146,existing:0,total:146,skippedDays:61,fromDay:'2026-10-03',toDay:'2026-11-01'});
     const after=await repository.loadSnapshot();
     expect(after.trackers).toEqual(before.trackers);

@@ -14,10 +14,17 @@ export type SampleHistoryResult = {
   fromDay: string; toDay: string;
 };
 
-/** Reject configured cloud clients even when signed out. Never seed hosted or native apps. */
+/** Cloud clients (including signed-out clients) and native apps never receive samples. */
+export function isSampleHistoryPreviewEligible(): boolean {
+  if (supabase || Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  if (['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) return true;
+  return process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW === '1' &&
+    window.location.protocol === 'https:' &&
+    /^drops-ridha--[a-z0-9]+\.expo\.app$/i.test(window.location.hostname);
+}
+
 function requireLocalPreview() {
-  if (supabase || Platform.OS !== 'web' || typeof window === 'undefined' ||
-      !['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname)) {
+  if (!isSampleHistoryPreviewEligible()) {
     throw new Error('Sample history is available only in the local web preview without cloud storage.');
   }
 }

@@ -62,6 +62,18 @@ host must serve `Cross-Origin-Embedder-Policy: require-corp` and
 
 ## Phone preview on the local network
 
+For the simplest phone handoff, prefer the hosted, account-free preview:
+`npm run build:web:phone` exports current code to `dist-phone/`, strips all
+Supabase configuration, and explicitly enables optional sample history for
+HTTPS `drops-ridha--<preview>.expo.app` URLs only. This is browser-local SQLite;
+it does not upload entries or sync between devices. Settings offers the labeled
+30-day sample history action; it never runs automatically. Deploy the completed
+export with the pinned EAS CLI using `deploy --export-dir dist-phone
+--environment preview --json`, then verify the returned immutable URL. A custom
+`phone` preview alias can keep the browser origin stable across later updates;
+do not use `--prod`. No Apple signing or local certificate is needed for this
+browser preview. Use a current browser and retain the same URL for your data.
+
 The static preview defaults to loopback. To use it from a phone on the same
 Wi-Fi, bind to the computer's Wi-Fi address and use HTTPS. Plain HTTP on a LAN
 address is not a secure context and cannot run the current SQLite storage.

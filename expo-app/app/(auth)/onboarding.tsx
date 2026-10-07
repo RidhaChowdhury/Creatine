@@ -6,10 +6,12 @@ import { ScrollView, Text, YStack } from 'tamagui';
 import { useAppDispatch } from '@/store/hooks';
 import { addSettings } from '@/features/settings/settingsSlice';
 import { savePreferences } from '@/lib/drops/repository';
+import { isSampleHistoryPreviewEligible } from '@/lib/drops/sample-history';
 import type { PriorUse } from '@/lib/drops/types';
 import { Action, Choices, Field, Failure } from '@/components/drops/ui';
 export default function Onboarding() {
   const dispatch = useAppDispatch();
+  const phonePreview = process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW === '1' && isSampleHistoryPreviewEligible();
   const [name, setName] = useState(''), [start, setStart] = useState(''), [dose, setDose] = useState('');
   const [prior, setPrior] = useState<PriorUse>({ creatine: 'unknown', caffeine: 'unknown' });
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export default function Onboarding() {
   return <SafeAreaView style={{ flex: 1, backgroundColor: '#0c0c0c' }}><KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}><YStack width="100%" maxWidth={560} alignSelf="center" gap={20}>
     <Text fontFamily="$brand" fontSize={26} color="#e9e9e9">DROPS.</Text><Text fontFamily="$display" fontSize={42} color="#e9e9e9">Your profile</Text>
     <Text color="#aaa">Only your name is required. Targets are yours to configure in Settings.</Text>
+    {phonePreview && <Text color="#aaa">Phone preview: your entries stay in this browser. You can optionally add sample history in Settings.</Text>}
     <Field label="Name" value={name} onChange={setName} />
     <Choices label="Prior creatine use · optional" values={['unknown','not-using','using','established']} value={prior.creatine} onChange={v => setPrior(p => ({ ...p, creatine: v as PriorUse['creatine'] }))} />
     <Field label="Optional creatine start · YYYY-MM-DD" value={start} onChange={setStart} /><Field label="Optional usual creatine dose · g" value={dose} onChange={setDose} />

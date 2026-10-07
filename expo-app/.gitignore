@@ -17,3 +17,4 @@ playwright-report/
 
 supabase/.temp/
 dist-cloud/
+dist-phone/

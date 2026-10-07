@@ -20,6 +20,7 @@
     "verify:db": "node scripts/verify-tracker-migration.mjs",
     "verify": "npm run typecheck && npm test && npm run test:setup && npm run verify:db && npm run verify:repository",
     "build:web": "node scripts/export-app.mjs web local",
+    "build:web:phone": "node scripts/export-app.mjs web phone-preview dist-phone",
     "build:native": "node scripts/export-app.mjs native local",
     "preview": "node scripts/preview.mjs",
     "native:sync": "expo prebuild --no-install",

@@ -9,7 +9,7 @@ import { PitwallSheet } from '@/components/pitwall/PitwallOverlays';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchSettings, selectUserSettings } from '@/features/settings/settingsSlice';
 import { saveAccountName } from '@/lib/drops/repository';
-import { addSampleHistory } from '@/lib/drops/sample-history';
+import { addSampleHistory, isSampleHistoryPreviewEligible } from '@/lib/drops/sample-history';
 import { signOutAccount, deleteAccount } from '@/lib/drops/account';
 import { supabase } from '@/lib/supabase';
 import { compatibleUnits, convertAmount } from '@/lib/drops/units';
@@ -33,7 +33,8 @@ export default function SettingsScreen() {
   const [start, setStart] = useState(''), [dose, setDose] = useState('');
   const samplePending = useRef(false);
   const [sampleBusy, setSampleBusy] = useState(false), [sampleProgress, setSampleProgress] = useState<string | null>(null), [sampleError, setSampleError] = useState<string | null>(null);
-  const localPreview = Platform.OS === 'web' && !supabase && typeof window !== 'undefined' && ['127.0.0.1', 'localhost', '[::1]'].includes(window.location.hostname);
+  const localPreview = isSampleHistoryPreviewEligible();
+  const phonePreview = process.env.EXPO_PUBLIC_DROPS_PHONE_PREVIEW === '1' && localPreview;
   const snapshot = drops.snapshot;
   async function addSamples() {
     if (!localPreview || samplePending.current || busy) return;
@@ -101,13 +102,14 @@ export default function SettingsScreen() {
     });
   }
   return <StateGate><Screen title="Settings">
-    {(['Profile','Targets','Units','Water presets','Reminders','Motion','Sound','Haptics','Intake context'] as Section[]).map(item => <YStack key={item} paddingVertical={12} borderBottomWidth={1} borderColor="#333"><Action label={item} onPress={() => open(item)} /></YStack>)}
     {localPreview && <YStack gap={10} paddingVertical={12} borderBottomWidth={1} borderColor="#333">
+      {phonePreview && <Text color="#aaa">Phone preview: your entries stay in this browser. Sample history is optional.</Text>}
       <Action label={sampleBusy ? 'Adding sample history…' : 'Add 30 days of sample history'} disabled={sampleBusy || busy} onPress={() => void addSamples()} />
-      <Text color="#aaa">Local preview only. Sample water and supplement entries are labeled as sample data. Existing records and settings are preserved. Repeating this action avoids duplicate samples.</Text>
+      <Text color="#aaa">Optional sample water and supplement entries are labeled as sample data. Existing records and settings are preserved. Repeating this action avoids duplicate samples.</Text>
       {sampleProgress && <Text color="#aaa" role="status">{sampleProgress}</Text>}
       <Failure message={sampleError} />
     </YStack>}
+    {(['Profile','Targets','Units','Water presets','Reminders','Motion','Sound','Haptics','Intake context'] as Section[]).map(item => <YStack key={item} paddingVertical={12} borderBottomWidth={1} borderColor="#333"><Action label={item} onPress={() => open(item)} /></YStack>)}
     {supabase && <><Action label={busy ? 'Signing out…' : 'Sign out'} disabled={busy} onPress={() => void run(async () => { await signOutAccount(); router.replace('/'); })} />
     <Action label="Delete account" onPress={() => open('Delete account')} /></>}<Failure message={section ? null : error} />
     <PitwallSheet open={section !== null} onOpenChange={value => { if (!value && !busy) { setSection(null); setPassword(''); setConfirmation(''); } }} title={section ?? 'Settings'}>
