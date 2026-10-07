@@ -26,15 +26,32 @@ export function assessPhoneCapabilities(browser, capabilities) {
   assert.equal(browser, 'webkit', 'Chromium must expose SharedArrayBuffer');
   return { status: 'unsupported', missing: ['SharedArrayBuffer'], limitation: 'Playwright WebKit port lacks SAB; physical Safari capability remains unverified', reference: 'https://github.com/microsoft/playwright/issues/28513' };
 }
+export function guardQaProfileCleanup(target, profileRoot, freshlyCreated) {
+  const resolved = path.resolve(target), root = path.resolve(profileRoot);
+  if (resolved !== freshlyCreated || !resolved.startsWith(root + path.sep) || !/^webkit-[a-zA-Z0-9]{6}$/.test(path.basename(resolved))) throw new Error('Refusing unexpected QA profile cleanup path');
+  return resolved;
+}
 
 async function runEngine(engine, name, base, directory) {
   const record = { browser: name, status: 'failed', phase: 'launch', passed: [], prohibitedRequests: 0, pageErrors: 0, assetFailures: 0, screenshots: [], limitations: ['Emulated mobile browser; no physical iPhone acceptance'] };
-  let browser, context, page;
+  let browser, context, page, profile;
+  const profileRoot = path.resolve(directory, 'profiles');
   const audits = [];
   try {
-    browser = await engine.launch({ headless: true, ...(name === 'chromium' ? { args: ['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'] } : {}) });
     const { defaultBrowserType, ...phone } = devices['iPhone 13'];
-    context = await browser.newContext({ ...phone, timezoneId: 'America/Chicago', reducedMotion: 'reduce', serviceWorkers: 'block' });
+    const options = { ...phone, timezoneId: 'America/Chicago', reducedMotion: 'reduce', serviceWorkers: 'block' };
+    if (name === 'webkit') {
+      // OPFS is not supported in ephemeral WebKit contexts. An empty, disposable
+      // persistent profile models ordinary Safari storage without using user data.
+      await fs.mkdir(profileRoot, { recursive: true });
+      profile = await fs.mkdtemp(path.join(profileRoot, 'webkit-'));
+      context = await engine.launchPersistentContext(profile, { ...options, headless: true });
+      record.storageMode = 'fresh disposable persistent profile';
+    } else {
+      browser = await engine.launch({ headless: true, args: ['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader'] });
+      context = await browser.newContext(options);
+      record.storageMode = 'fresh isolated Chromium context';
+    }
     await context.tracing.start({ screenshots: true, snapshots: true });
     await context.route('**/*', async route => {
       try { guardPhoneRequest(route.request().url(), base.href, route.request().resourceType()); }
@@ -166,7 +183,12 @@ async function runEngine(engine, name, base, directory) {
     if (page) try { await page.screenshot({ path: path.join(directory, `${name}-failure.png`) }); record.screenshots.push(`${name}-failure.png`); } catch {}
   } finally {
     if (context) await context.tracing.stop(record.status === 'failed' ? { path: path.join(directory, `${name}-failure-trace.zip`) } : {}).catch(() => {});
+    await context?.close();
     await browser?.close();
+    if (profile) {
+      const target = guardQaProfileCleanup(profile, profileRoot, profile);
+      await fs.rm(target, { recursive: true, force: true });
+    }
   }
   return record;
 }

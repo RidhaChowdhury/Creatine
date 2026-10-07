@@ -1,0 +1,55 @@
+name: Hosted phone preview smoke
+
+on:
+  push:
+    branches: ['codex/drops-v01']
+    paths:
+      - '.github/workflows/phone-preview.yml'
+      - 'expo-app/scripts/phone-preview-qa.mjs'
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: Immutable account-free Drops phone preview URL
+        required: true
+        default: https://drops-ridha--v6slrkvs0r.expo.app/
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: drops-phone-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phone-browsers:
+    runs-on: macos-15
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: expo-app
+    env:
+      EXPO_NO_DOTENV: '1'
+      # Push runs check this explicit candidate, not an assumed newest deployment.
+      DROPS_PHONE_URL: ${{ inputs.deployment_url || 'https://drops-ridha--v6slrkvs0r.expo.app/' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: expo-app/.nvmrc
+          cache: npm
+          cache-dependency-path: expo-app/package-lock.json
+      - name: Install locked dependencies and worker compatibility patch
+        run: npm ci
+      - name: Install Chromium and WebKit
+        run: node node_modules/@playwright/test/cli.js install chromium webkit
+      - name: Exercise real browser storage and mobile flows
+        run: node scripts/phone-preview-qa.mjs "$DROPS_PHONE_URL"
+      - name: Preserve synthetic phone evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phone-preview-${{ github.run_id }}
+          path: expo-app/artifacts/phone-preview/
+          if-no-files-found: ignore
+          retention-days: 14
