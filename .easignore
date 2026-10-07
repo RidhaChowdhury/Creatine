@@ -23,5 +23,6 @@ expo-app/android
 
 **/supabase/.temp
 **/dist-cloud
+**/dist-phone
 # The SQL fixture fallback is an admin-only local QA tool.
 expo-app/scripts/cloud-qa-fixtures.sql
